@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PlayerControl : MonoBehaviour
 {
@@ -9,13 +10,44 @@ public class PlayerControl : MonoBehaviour
     public static float SPEED_MAX = 8.0f; // 속도의 최댓값
     public static float JUMP_HEIGHT_MAX = 3.0f; // 점프 높이
     public static float JUMP_KEY_RELEASE_REDUCE = 0.5f; // 점프 감속도
+    public static float DOUBLE_JUMP_HEIGHT_REDUCE = 0.7f; //더블 점프 감속도
+    public float floatStaminaCostRate = 10f; // 부양 중 초당 스테미너 소모량
+    public float minFloatStamina = 5f; // 부양 가능 최소 스테미너
+
+
+    public float maxStamina = 100f;         // 최대 스태미너
+    public float currentStamina = 100f;       // 현재 스태미너
+    public float staminaJumpCost = 5f;       // 점프 스태미너 소모량
+    public float staminaDoubleJumpCost = 5f; // 더블 점프 스테미너 소모량
+    public float staminaRecoveryRate = 15f;   // 초당 스태미너 회복량
+    public float staminaRecoveryDelay = 0.1f;  // 회복 딜레이 시간 (착지 후 바로 회복 시작)
+    private float staminaRecoveryTimer = 0f;   // 스태미너 회복 타이머
+    private bool isFloating = false;         // 부양 중인지 여부
+    private bool hasDoubleJumped = false;    // 더블 점프를 이미 수행했는지 여부
+    public float maxFloatYSpeed = 2f;
+
+    public Slider staminaSlider; //스테미나 확인용 슬라이드
+
+    public float dashDistance = 50f; // 돌진 거리
+    public float dashSpeedMultiplier = 5f; // 돌진 속도 배율
+    public float dashStaminaCost = 20f; // 돌진 시 스테미너 소모량
+    public float dashCoolDownTime = 1f; // 돌진 쿨타임
+
+    private bool isDashing = false;          // 돌진 중인지 여부
+    private float dashCoolDownTimer = 0f;    // 돌진 쿨타임 타이머
+
+    public float dashDuration = 0.2f; // 예: 0.2초 동안 돌진 상태 유지
+    private float dashTimer = 0.0f;   // 돌진 상태 내부 타이머
+
+
     public enum STEP
     { // Player의 각종 상태를 나타내는 자료형 (열거체)
         NONE = -1, // 상태정보 없음
         RUN = 0, // 달림
         JUMP, // 점프
         MISS, // 실패
-        NUM, // 상태가 몇 종류 있는지 보여줌(=3)
+        DASH, // 돌진
+        NUM, // 상태가 몇 종류 있는지 보여줌(=5)
     };
 
     public STEP step = STEP.NONE; // Player의 현재 상태
@@ -24,8 +56,9 @@ public class PlayerControl : MonoBehaviour
     private bool is_landed = false; // 착지했는가
     private bool is_colided = false; // 뭔가와 충돌했는가
     private bool is_key_released = false; // 버튼이 떨어졌는가
+    //private Vector3 dashStartPos;        // 돌진 시작 위치
 
-    public static float NARAKU_HEIGHT = -5.0f;
+    public static float NARAKU_HEIGHT = -5.0f; //게임 오버 한계선
 
     // LevelControl과 연계하기 위해 필요
     public float current_speed = 0.0f; // 현재 속도
@@ -39,6 +72,11 @@ public class PlayerControl : MonoBehaviour
     void Start()
     {
         this.next_step = STEP.RUN;
+        currentStamina = maxStamina;
+        isFloating = false;
+        hasDoubleJumped = false;
+        isDashing = false;
+        dashCoolDownTimer = 0f;
     }
 
     // Update is called once per frame
@@ -46,16 +84,77 @@ public class PlayerControl : MonoBehaviour
     {
         this.transform.Translate(new Vector3(0.0f, 0.0f, 3.0f * Time.deltaTime));
 
-        Vector3 velocity = this.GetComponent<Rigidbody>().velocity; // 속도를 설정
+        Rigidbody rb = this.GetComponent<Rigidbody>();
+        Vector3 velocity = rb.velocity; // 속도를 설정
+
 
         // 아래 현재 속도를 가져오는 메서드 호출 추가
         this.current_speed = this.level_control.getPlayerSpeed();
 
         this.check_landed(); // 착지 상태인지 체크
+
+        // 스태미너 회복 로직
+        if (currentStamina < maxStamina)
+        {
+            currentStamina += staminaRecoveryRate * Time.deltaTime;
+            currentStamina = Mathf.Clamp(currentStamina, 0f, maxStamina); // 최대치 제한
+            UpdateStaminaUI();
+        }
+
+        if (is_landed)
+        {
+            isFloating = false;       // 착지하면 부양 종료
+            hasDoubleJumped = false;  // 착지하면 더블 점프 수행 상태 초기화
+            isDashing = false;
+        }
+
+
+        // 돌진 쿨타임 관리
+        if (dashCoolDownTimer > 0)
+        {
+            dashCoolDownTimer -= Time.deltaTime;
+        }
+
+        // 부양 로직
+        if (isFloating && Input.GetMouseButton(0) && currentStamina > minFloatStamina && step == STEP.JUMP && hasDoubleJumped)
+        {
+            if (rb.velocity.y < maxFloatYSpeed) // 현재 Y 속도가 최대치보다 작을 때만 힘을 가함
+            {
+                rb.AddForce(Vector3.up * 20f, ForceMode.VelocityChange); // 현재 값 유지 또는 조절
+            }
+            currentStamina -= floatStaminaCostRate * Time.deltaTime;
+            currentStamina = Mathf.Clamp(currentStamina, 0f, maxStamina);
+            UpdateStaminaUI();
+        }
+        else
+        {
+            if (isFloating)
+            {
+                isFloating = false;
+            }
+        }
+
+        if (Input.GetMouseButtonDown(1) &&      // 우클릭
+        this.step != STEP.DASH &&           // 현재 돌진 상태가 아닐 때 (중복 방지)
+        dashCoolDownTimer <= 0f &&          // 쿨타임이 끝났을 때
+        currentStamina >= dashStaminaCost && // 스태미나가 충분할 때
+        (this.step == STEP.RUN || this.step == STEP.JUMP)) // 달리기 또는 점프 중에만
+        {
+            currentStamina -= dashStaminaCost;
+            UpdateStaminaUI();
+
+            dashCoolDownTimer = dashCoolDownTime; // 쿨타임 시작
+            this.isDashing = true; // isDashing 플래그는 카메라 연출 등에 사용될 수 있습니다.
+                                   // 실제 돌진 행동은 STEP.DASH 상태로 제어합니다.
+            this.next_step = STEP.DASH;
+        }
+
+
         switch (this.step)
         {
             case STEP.RUN:
             case STEP.JUMP:
+            case STEP.DASH:
                 // 현재 위치가 한계치보다 아래면,
                 if (this.transform.position.y < NARAKU_HEIGHT)
                 {
@@ -83,28 +182,65 @@ public class PlayerControl : MonoBehaviour
         {
             switch (this.step)
             { // Player의 현재 상태로 분기
-                case STEP.RUN: // 달리는 중일 때
-                               // 아래 부분을 주석 처리
-                               // if( !this.is_landed) {
-                               // } else {
-                               // if(Input.GetMouseButtonDown(0)) {
-                               // this.next_step = STEP.JUMP;
-                               // }
-                               // }
-                               // 아래 부분으로 수정
+                case STEP.RUN: //달리는중
                     if (0.0f <= this.click_timer && this.click_timer <= CLICK_GRACE_TIME)
                     { // click_timer가 0이상, CLICK_GRACE_TIME이하라면,
                         if (this.is_landed)
                         { // 착지했다면,
-                            this.click_timer = -1.0f; // 버튼이 눌려있지 않음을 나타내는 -1.0f로
-                            this.next_step = STEP.JUMP; // 점프 상태로
+                          // 스태미너가 점프 비용보다 많거나 같으면 점프
+                            if (currentStamina >= staminaJumpCost)
+                            {
+                                currentStamina -= staminaJumpCost;
+                                UpdateStaminaUI();
+                                this.click_timer = -1.0f; // 버튼이 눌려있지 않음을 나타내는 -1.0f로
+                                velocity.y = Mathf.Sqrt(2.0f * 9.8f * JUMP_HEIGHT_MAX);
+                                this.is_key_released = false; // 키 릴리즈 플래그 초기화
+                                this.next_step = STEP.JUMP; // 점프 상태로
+                            }
+                            // 스태미너가 부족하지만 점프를 허용
+                            else if (currentStamina < staminaJumpCost && currentStamina > 0)
+                            {
+                                currentStamina = 0; // 남은 스태미너 모두 소모
+                                UpdateStaminaUI();
+                                this.click_timer = -1.0f; // 버튼이 눌려있지 않음을 나타내는 -1.0f로
+                                velocity.y = Mathf.Sqrt(2.0f * 9.8f * JUMP_HEIGHT_MAX);
+                                this.is_key_released = false; // 키 릴리즈 플래그 초기화
+                                this.next_step = STEP.JUMP; // 점프 상태로
+                            }
+                            else if (currentStamina <= 0)
+                            {
+                                // 스태미너 부족으로 점프 못하므로 패스
+                            }
                         }
                     }
                     break;
                 case STEP.JUMP: // 점프 중일 때
-                    if (this.is_landed)
+                    if (!this.is_landed && !hasDoubleJumped && (0.0f <= this.click_timer && this.click_timer <= CLICK_GRACE_TIME))
                     {
-                        // 점프 중이고 착지했다면, 다음 상태를 주행 중으로 변경
+                        // 공중에 있고 아직 더블 점프를 안 했으며 점프 입력이 있을 때
+                        if (currentStamina >= staminaDoubleJumpCost)
+                        {
+                            currentStamina -= staminaDoubleJumpCost;
+                            velocity.y = Mathf.Sqrt(2.0f * 9.8f * JUMP_HEIGHT_MAX * DOUBLE_JUMP_HEIGHT_REDUCE); // 더블 점프 높이 적용
+                            this.hasDoubleJumped = true;     // 더블 점프 사용함
+                            this.isFloating = true;          // 더블 점프 후 부양 가능하도록 설정
+                            this.is_key_released = false;    // 새로운 상승 동작이므로 키 릴리즈 플래그 리셋
+                            this.click_timer = -1.0f;        // 입력 처리됨
+                        }
+                        else if (currentStamina < staminaDoubleJumpCost && currentStamina > 0)
+                        {
+                            currentStamina = 0;
+                            velocity.y = Mathf.Sqrt(2.0f * 9.8f * JUMP_HEIGHT_MAX * DOUBLE_JUMP_HEIGHT_REDUCE);
+                            this.hasDoubleJumped = true;
+                            this.isFloating = true;
+                            this.is_key_released = false;
+                            this.click_timer = -1.0f;
+                        }
+                        UpdateStaminaUI();
+                    }
+                    else if (this.is_landed)
+                    {
+
                         this.next_step = STEP.RUN;
                     }
                     break;
@@ -115,13 +251,18 @@ public class PlayerControl : MonoBehaviour
         {
             this.step = this.next_step; // '현재 상태'를 '다음 상태'로 갱신
             this.next_step = STEP.NONE; // '다음 상태'를 '상태 없음'으로 변경
+
             switch (this.step)
             { // 갱신된 '현재 상태'가
                 case STEP.JUMP: // '점프’일 때,
-                                // 최고 도달점 높이(JUMP_HEIGHT_MAX)까지 점프할 수 있는 속도를 계산
-                    velocity.y = Mathf.Sqrt(2.0f * 9.8f * PlayerControl.JUMP_HEIGHT_MAX);
+
                     // '버튼이 떨어졌음을 나타내는 플래그'를 클리어
                     this.is_key_released = false;
+                    break;
+                case STEP.DASH: // ⭐ 돌진 상태 진입 시 처리
+                    this.dashTimer = 0.0f;  // 돌진 내부 타이머 초기화
+                    this.isDashing = true;
+                    this.is_landed = false; // 돌진 중에는 착지 상태를 잠시 해제 (공중 돌진 가능성)
                     break;
             }
             // 상태가 변했으므로 경과 시간을 제로로 리셋
@@ -131,13 +272,9 @@ public class PlayerControl : MonoBehaviour
         switch (this.step)
         {
             case STEP.RUN: // 달리는 중일 때,
-                           // 속도를 높임
+                //속도 증가
                 velocity.x += PlayerControl.ACCELERATION * Time.deltaTime;
-                // 아래 부분 주석 처리
-                // if (Mathf.Abs(velocity.x) > PlayerControl.SPEED_MAX) {
-                // velocity.x *= PlayerControl.SPEED_MAX / Mathf.Abs(this.rigidbody.velocity.x);
-                // }
-                // 아래 부분 추가
+
                 if (Mathf.Abs(velocity.x) > this.current_speed)
                 { // 계산으로 구한 속도가 설정해야 할 속도를 넘으면,
                     velocity.x *= this.current_speed / Mathf.Abs(velocity.x); // 넘지 않게 조정
@@ -175,9 +312,33 @@ public class PlayerControl : MonoBehaviour
                     velocity.x = 0.0f; // 0으로
                 }
                 break;
+            case STEP.DASH: // ⭐ 돌진 상태일 때 매 프레임 처리
+                dashTimer += Time.deltaTime;
+                if (dashTimer < dashDuration)
+                {
+                    // 돌진은 매우 빠른 속도로 X축 이동
+                    velocity.x = this.current_speed * dashSpeedMultiplier;
+                    velocity.y = 0f; // 현재 Y축 속도 0 강제
+                }
+                else
+                {
+                    // 돌진 종료
+                    this.isDashing = false;
+
+                    if (this.is_landed)
+                    {
+                        this.next_step = STEP.RUN;
+                    }
+                    else
+                    {
+                        // 공중에서 돌진이 끝났다면, 일반 점프/낙하 상태로 돌아감
+                        this.next_step = STEP.JUMP;
+                    }
+                }
+                break;
         }
         // Rigidbody의 속도를 위에서 구한 속도로 갱신 (이 행은 상태에 관계없이 매번 실행)
-        this.GetComponent<Rigidbody>().velocity = velocity;
+        rb.velocity = velocity;
     }
 
     private void check_landed()
@@ -192,9 +353,9 @@ public class PlayerControl : MonoBehaviour
                 break; // 아무것도 하지 않고 do~while 루프를 빠져나감(탈출구로)
             }
             // s부터 e 사이에 뭔가 있을 때 아래의 처리가 실행
-            if(this.step == STEP.JUMP) { // 현재, 점프 상태라면
-                if(this.step_timer < Time.deltaTime * 3.0f) 
-                    { // 경과 시간이 3.0f 미만이라면
+            if(this.step == STEP.JUMP) { // 현재, 점프, 더블점프 상태라면
+                if(this.step_timer < Time.deltaTime * 0.1f) 
+                    { // 경과 시간이 0.1f 미만이라면
                     break; // 아무것도 하지 않고 do~while 루프를 빠져나감(탈출구로)
                 }
             }
@@ -202,5 +363,18 @@ public class PlayerControl : MonoBehaviour
             this.is_landed = true;
         } while (false);
         // 루프의 탈출구
+    }
+
+    void UpdateStaminaUI()
+    {
+        if (staminaSlider != null)
+        {
+            staminaSlider.value = currentStamina;
+        }
+    }
+
+    public bool IsPlayerDashing()
+    {
+        return this.step == STEP.DASH;
     }
 }

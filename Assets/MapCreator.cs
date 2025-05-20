@@ -20,7 +20,7 @@ public class MapCreator : MonoBehaviour
 {
     public static float BLOCK_WIDTH = 1.0f; // 블록의 폭
     public static float BLOCK_HEIGHT = 0.2f; // 블록의 높이
-    public static int BLOCK_NUM_IN_SCREEN = 24;// 화면 내에 들어가는 블록의 개수
+    public static int BLOCK_NUM_IN_SCREEN = 72;// 화면 내에 들어가는 블록의 개수
                                                // 블록에 관한 정보를 모아서 관리하는 구조체
                                                // (여러 개의 정보를 하나로 묶을 때 사용)
     private struct FloorBlock
@@ -61,7 +61,7 @@ public class MapCreator : MonoBehaviour
         float block_generate_x = this.player.transform.position.x;
         // 그리고 대략 반 화면만큼 오른쪽으로 이동
         // 이 위치가 블록을 생성하는 문턱 값
-        block_generate_x += BLOCK_WIDTH * ((float)BLOCK_NUM_IN_SCREEN + 1) / 2.0f;
+        block_generate_x += BLOCK_WIDTH * ((float)BLOCK_NUM_IN_SCREEN + 1) / 3.0f * 2.0f;
         // 마지막에 만든 블록의 위치가 문턱 값보다 작으면
         while (this.last_block.position.x < block_generate_x)
         {
@@ -78,7 +78,7 @@ public class MapCreator : MonoBehaviour
           // 블록의 위치를 일단 Player와 같게
             block_position = this.player.transform.position;
             // 그러고 나서 블록의 X 위치를 화면 절반만큼 왼쪽으로 이동
-            block_position.x -= BLOCK_WIDTH * ((float)BLOCK_NUM_IN_SCREEN / 2.0f);
+            block_position.x -= BLOCK_WIDTH * ((float)BLOCK_NUM_IN_SCREEN / 3.0f);
             // 블록의 Y위치는 0으로
             block_position.y = 0.0f;
         }
