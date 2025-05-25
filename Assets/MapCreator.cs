@@ -40,15 +40,10 @@ public class MapCreator : MonoBehaviour
 
     void Start()
     {
-        this.player = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerControl>();
+        //this.player = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerControl>();
         this.last_block.is_created = false;
         this.block_creator = this.gameObject.GetComponent<BlockCreator>();
 
-        this.level_control = GetComponent<LevelControl>();
-
-        // this.level_control.loadLevelData(this.level_data_text);
-
-        this.player.level_control = this.level_control;
 
         this.game_root = this.gameObject.GetComponent<GameRoot>();
     }
@@ -116,4 +111,63 @@ public class MapCreator : MonoBehaviour
         }
         return (ret); // 판정 결과를 돌려줌
     }
+
+    public void InitializeForNewStage(LevelControl lcInstanceFromGameRoot)
+    {
+        Debug.Log("MapCreator: InitializeForNewStage가 LevelControl 참조와 함께 호출됨.");
+        this.level_control = lcInstanceFromGameRoot; // 전달받은 참조 사용
+
+        // 플레이어 참조 다시 찾기 (이 부분은 기존 로직 유지 또는 GameRoot로부터 전달받을 수도 있음)
+        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+        if (playerObject != null)
+        {
+            this.player = playerObject.GetComponent<PlayerControl>();
+            if (this.player != null)
+            {
+                Debug.Log("MapCreator: 새 씬(스테이지)에서 플레이어를 찾았습니다.");
+                if (this.level_control != null) // level_control이 유효하면 PlayerControl에도 설정
+                {
+                    this.player.level_control = this.level_control;
+                }
+            }
+            else
+            {
+                Debug.LogError("MapCreator: 'Player' 태그 오브젝트에서 PlayerControl 컴포넌트를 찾지 못했습니다.");
+                this.player = null;
+            }
+        }
+        else
+        {
+            Debug.LogError("MapCreator: 'Player' 태그를 가진 플레이어 오브젝트를 새 씬(스테이지)에서 찾지 못했습니다!");
+            this.player = null;
+        }
+
+        // GameRoot 참조 설정 (기존대로 GameRoot.Instance 사용 가능)
+        if (GameRoot.Instance != null)
+        {
+            this.game_root = GameRoot.Instance;
+        }
+        else
+        {
+            Debug.LogWarning("MapCreator: GameRoot 인스턴스를 찾을 수 없습니다.");
+        }
+
+        // 맵 생성 상태 초기화
+        this.last_block.is_created = false;
+        this.last_block.position = Vector3.zero; // 초기 기준 위치 설정
+
+        if (this.level_control != null)
+        {
+            Debug.Log("MapCreator: LevelControl 참조가 유효합니다. InitializeBlockGeneration()을 호출합니다.");
+            this.level_control.InitializeBlockGeneration();
+        }
+        else
+        {
+            // 이 로그가 사용자에게 현재 나타나는 로그입니다.
+            // GameRoot가 전달한 LevelControl 인스턴스가 null이라는 의미가 됩니다.
+            Debug.LogError("MapCreator: LevelControl 참조가 없습니다. InitializeBlockGeneration 호출 불가.");
+        }
+        Debug.Log("MapCreator: 새 스테이지에 대한 초기화 완료 시도.");
+    }
+
 }

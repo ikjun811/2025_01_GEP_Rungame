@@ -32,6 +32,7 @@ public class BossControl : MonoBehaviour
 
 
     private LevelControl levelControl;
+    private PlayerControl playerControl;
 
     // Start is called before the first frame update
     void Start()
@@ -39,6 +40,7 @@ public class BossControl : MonoBehaviour
         GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
 
         playerTransform = playerObject.transform;
+        playerControl = playerObject.GetComponent<PlayerControl>();
 
         levelControl = FindObjectOfType<LevelControl>();
 
@@ -174,24 +176,24 @@ public class BossControl : MonoBehaviour
     void Die()
     {
         Debug.Log("보스 처치!");
-        // (사망 이펙트, 아이템 드랍, 스테이지 클리어 등의 로직)
-        if (bossHealthSlider != null) // ⭐ 보스 사망 시 체력바 처리 (선택적)
+        if (GameRoot.Instance != null)
         {
-            bossHealthSlider.value = 0;
+            GameRoot.Instance.NotifyStageCleared();
         }
-        Destroy(gameObject);
+
+        if (bossHealthSlider != null)
+        {
+            bossHealthSlider.gameObject.SetActive(false); 
+        }
+        gameObject.SetActive(false);
     }
 
     public void UpdateBossStats(float newMaxHp, float newFireInterval)
     {
         maxHp = newMaxHp;
-        // 체력이 변경될 때 현재 체력도 비율에 맞게 조절하거나, 최대로 채울 수 있습니다.
-        // 여기서는 단순히 현재 체력이 새 최대 체력을 넘지 않도록 합니다.
-        currentHp = Mathf.Min(currentHp, maxHp);
-        // 또는 currentHp = maxHp; // 새 스테이지 시작 시 체력을 최대로 회복
-
+        currentHp = maxHp;
         currentFireInterval = newFireInterval;
-        fireTimer = Mathf.Min(fireTimer, currentFireInterval); // 발사 주기가 짧아졌다면 타이머도 조절
+        fireTimer = currentFireInterval;
 
         UpdateBossHealthUI();
         Debug.Log($"보스 스탯 업데이트됨 - HP: {maxHp}, 공격 주기: {currentFireInterval}초");
@@ -226,22 +228,36 @@ public class BossControl : MonoBehaviour
     {
         if (bossHealthSlider != null)
         {
-            if (maxHp > 0) // maxHp가 0일 때 나누기 오류 방지
+            // 보스 GameObject가 활성화되어 있고, 최대 체력이 0보다 클 때만 슬라이더를 표시/업데이트
+            if (gameObject.activeInHierarchy && maxHp > 0)
             {
-                bossHealthSlider.value = currentHp / maxHp; // 현재 체력 비율로 슬라이더 값 설정
+                bossHealthSlider.gameObject.SetActive(true);
+                bossHealthSlider.value = currentHp / maxHp;
             }
             else
             {
-                bossHealthSlider.value = 0; // maxHp가 0이면 체력도 0으로 표시
+                bossHealthSlider.gameObject.SetActive(false); 
             }
+        }
+    }
 
-            // (선택적) 보스가 활성화 상태일 때만 체력바를 표시하고 싶다면:
-            // bossHealthSlider.gameObject.SetActive(gameObject.activeInHierarchy && currentHp > 0);
-        }
-        else
+    public void ResetStateForNewStage()
+    {
+        currentHp = maxHp; // 새 스테이지 시작 시 체력을 최대로
+        fireTimer = currentFireInterval; // 공격 타이머 리셋
+
+        // 약점 위치 등 기타 상태 초기화
+        if (weakPointObject != null && firePoints != null && firePoints.Length > 0)
         {
-            // Debug.LogWarning("BossHealthSlider가 할당되지 않았습니다."); // 필요하다면 경고 로그
+            currentWeakPointFirePointIndex = 0;
+            weakPointObject.transform.position = firePoints[currentWeakPointFirePointIndex].position;
+            weakPointMoveTimer = weakPointMoveInterval;
+            weakPointObject.SetActive(true); // 약점도 활성화
         }
+
+        gameObject.SetActive(true); // 보스 오브젝트 자체를 활성화
+        UpdateBossHealthUI();       // UI 업데이트 (내부에서 슬라이더 활성화 포함)
+        Debug.Log($"보스 상태 리셋 완료: HP={currentHp}/{maxHp}");
     }
 
 }

@@ -32,6 +32,8 @@ public class LevelControl : MonoBehaviour
 
     public BossControl bossInstance; // 씬에 있는 보스 오브젝트를 Inspector에서 연결
 
+    public bool generateSafeFloorOnly = false;
+
 
     [System.Serializable]
     public struct Range
@@ -118,20 +120,17 @@ public class LevelControl : MonoBehaviour
         {
             if (currentStageSettings.bossMaxHp > 0) // 보스가 등장하는 스테이지라면
             {
-                bossInstance.gameObject.SetActive(true);
                 bossInstance.UpdateBossStats(currentStageSettings.bossMaxHp, currentStageSettings.bossFireInterval);
             }
             else // 보스가 등장하지 않는 스테이지라면 비활성화
             {
                 bossInstance.gameObject.SetActive(false);
+                if (bossInstance.bossHealthSlider != null)
+                {
+                    bossInstance.bossHealthSlider.gameObject.SetActive(false);
+                }
             }
         }
-
-        // PlayerControl, MapCreator, BossControl에 변경된 설정 알리기 또는 이들이 직접 가져가도록 함
-        // 예: FindObjectOfType<PlayerControl>()?.SetSpeed(currentStageSettings.playerSpeed);
-        //    FindObjectOfType<BossControl>()?.UpdateBossStats(currentStageSettings.bossMaxHp, currentStageSettings.bossFireInterval);
-        //    FindObjectOfType<MapCreator>()?.UpdateMapRules(currentStageSettings.floorCount, ...);
-        // 또는 각 스크립트가 Start()나 필요시 LevelControl.currentStageSettings를 직접 참조
     }
 
     public float getPlayerSpeed()
@@ -139,56 +138,70 @@ public class LevelControl : MonoBehaviour
         return (currentStageSettings != null) ? currentStageSettings.playerSpeed : 10.0f; // 기본 속도
     }
 
-    void InitializeBlockGeneration()
+    public void InitializeBlockGeneration()
     {
         this.block_count = 0;
-        // current_block 초기화 (예: 첫 블록은 항상 바닥)
-        current_block.block_type = Block.TYPE.FLOOR;
-        current_block.max_count = (currentStageSettings != null) ? Random.Range(currentStageSettings.floorCount.min, currentStageSettings.floorCount.max + 1) : 10; // 첫 바닥 길이
-        current_block.height = 0; // 시작 높이
-        current_block.current_count = 0; // 아직 하나도 안 만듦 (PrepareNextBlockPatternForMapCreator에서 증가시킬 것이므로)
+        if (currentStageSettings != null) // currentStageSettings가 로드된 후에 호출되어야 함
+        {
+            // 안전 모드일 경우 첫 패턴을 강제로 긴 바닥으로 설정하거나,
+            // PrepareNextBlockPatternForMapCreator가 처리하도록 current_count를 max_count로 설정
+            current_block.block_type = Block.TYPE.HOLE; // 다음 PrepareNext... 호출 시 FLOOR가 되도록 유도
+            current_block.max_count = 0; // 즉시 다음 패턴으로 넘어가도록
+            current_block.height = 0;
+            current_block.current_count = 0; // 또는 max_count로 설정하여 즉시 패턴 변경 유도
+
+            // 첫 블록 패턴을 즉시 준비 (안전 모드 또는 일반 모드에 따라)
+            PrepareNextBlockPatternForMapCreator();
+            Debug.Log($"LevelControl: 블록 생성 초기화 및 첫 패턴 준비 완료. 현재 생성될 블록: {current_block.block_type}, 개수: {current_block.max_count}");
+        }
     }
 
 
     public void PrepareNextBlockPatternForMapCreator() // MapCreator가 블록 묶음이 끝날 때 호출
     {
+        if (currentStageSettings == null && !generateSafeFloorOnly)
+        { // 안전 모드일 때는 currentStageSettings가 없어도 진행 가능
+            Debug.LogError("PrepareNextBlockPatternForMapCreator: currentStageSettings가 null입니다!");
+            return;
+        }
+
         if (currentStageSettings == null) return;
 
-        // 현재 current_block 묶음(예: FLOOR 5개)이 끝났는지 판단 (MapCreator가 알려주거나, 여기서 카운트)
-        // 끝났다면, 다음 묶음(HOLE 또는 FLOOR)을 currentStageSettings의 규칙에 따라 결정
-        // 예: 이전이 FLOOR였다면 다음은 HOLE, 개수는 holeCount.min/max 사이 랜덤
-        //     이전이 HOLE이었다면 다음은 FLOOR, 개수는 floorCount.min/max 사이 랜덤, 높이도 heightDiff 범위 내 변경
-
-        // 아래는 기존 update_level과 유사한 로직을 현재 스테이지 데이터 기반으로 수정하는 예시
-        // (이 로직은 MapCreator가 current_block을 어떻게 소비하는지에 따라 달라짐)
         if (current_block.current_count >= current_block.max_count || block_count == 0) // 현재 블록 묶음 완료 또는 첫 시작
         {
-            // previous_block = current_block; // 필요하다면
-            // current_block = next_block;    // 이런식으로 3단계를 쓰거나, 바로 다음것 계산
 
             Block.TYPE nextType;
             int nextMaxCount;
             int nextHeight = current_block.height;
 
 
-            if (current_block.block_type == Block.TYPE.FLOOR || block_count == 0)
-            {
-                nextType = Block.TYPE.HOLE;
-                nextMaxCount = Random.Range(currentStageSettings.holeCount.min, currentStageSettings.holeCount.max + 1);
-                Debug.Log($"다음 패턴: HOLE, 개수(min-max): {currentStageSettings.holeCount.min}-{currentStageSettings.holeCount.max}, 선택된 개수: {nextMaxCount}");
-            }
-            else // 이전이 구멍이면 바닥
+            if (generateSafeFloorOnly) // ⭐ 안전 모드이면 무조건 바닥 생성
             {
                 nextType = Block.TYPE.FLOOR;
-                nextMaxCount = Random.Range(currentStageSettings.floorCount.min, currentStageSettings.floorCount.max + 1);
-                int height_min = current_block.height + currentStageSettings.heightDiff.min;
-                int height_max = current_block.height + currentStageSettings.heightDiff.max;
-                height_min = Mathf.Clamp(height_min, HEIGHT_MIN, HEIGHT_MAX);
-                height_max = Mathf.Clamp(height_max, HEIGHT_MIN, HEIGHT_MAX);
-                nextHeight = Random.Range(height_min, height_max + 1);
-                Debug.Log($"다음 패턴: FLOOR, 개수(min-max): {currentStageSettings.floorCount.min}-{currentStageSettings.floorCount.max}, 선택된 개수: {nextMaxCount}, 높이: {nextHeight}");
+                nextMaxCount = 50; // 충분히 긴 안전한 바닥 (값은 조절 가능)
+                nextHeight = 0;    // 평평한 바닥
+                Debug.Log($"안전 바닥 생성 준비: 개수 {nextMaxCount}");
             }
-
+            else // 일반 패턴 생성
+            {
+                if (current_block.block_type == Block.TYPE.FLOOR || block_count == 0)
+                {
+                    nextType = Block.TYPE.HOLE;
+                    nextMaxCount = Random.Range(currentStageSettings.holeCount.min, currentStageSettings.holeCount.max + 1);
+                }
+                else
+                {
+                    nextType = Block.TYPE.FLOOR;
+                    nextMaxCount = Random.Range(currentStageSettings.floorCount.min, currentStageSettings.floorCount.max + 1);
+                    // 높이 변경 로직
+                    int height_min = current_block.height + currentStageSettings.heightDiff.min;
+                    int height_max = current_block.height + currentStageSettings.heightDiff.max;
+                    height_min = Mathf.Clamp(height_min, HEIGHT_MIN, HEIGHT_MAX);
+                    height_max = Mathf.Clamp(height_max, HEIGHT_MIN, HEIGHT_MAX);
+                    nextHeight = Random.Range(height_min, height_max + 1);
+                }
+                // Debug.Log($"다음 패턴: {nextType}, 개수: {nextMaxCount}, 높이: {nextHeight}");
+            }
             current_block.block_type = nextType;
             current_block.max_count = nextMaxCount;
             current_block.height = nextHeight;
@@ -198,5 +211,20 @@ public class LevelControl : MonoBehaviour
         block_count++;
     }
 
+    public void SetSafeFloorMode(bool isSafe)
+    {
+        generateSafeFloorOnly = isSafe;
+        Debug.Log($"LevelControl: SafeFloorMode 설정됨: {isSafe}");
+
+        // 안전 모드가 켜지면, 즉시 다음 블록 패턴을 "안전한 바닥"으로 강제 설정 시도
+        if (isSafe)
+        {
+            // 현재 블록 묶음을 강제로 완료시키고, 다음 PrepareNext... 호출 시 안전 바닥이 생성되도록 유도
+            this.current_block.current_count = this.current_block.max_count;
+            PrepareNextBlockPatternForMapCreator(); // 이 호출로 current_block이 안전한 바닥으로 설정됨
+        }
+        // 안전 모드가 해제되면, 다음 MapCreator의 PrepareNext... 호출 시 InitializeBlockGeneration에서
+        // 설정된 일반 패턴으로 돌아감 (ApplySettingsForStage가 InitializeBlockGeneration을 호출했으므로)
+    }
 
 }

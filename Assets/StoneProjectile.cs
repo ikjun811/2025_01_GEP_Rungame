@@ -38,8 +38,6 @@ public class StoneProjectile : MonoBehaviour
         if (other.CompareTag("Boss"))
         {
             Debug.Log("돌멩이가 보스 몸체에 명중하여 파괴됩니다.");
-            // 몸체에 맞았을 때는 보스에게 데미지를 주지 않고 돌멩이만 파괴 (현재 요청 사항)
-            // 만약 몸체에도 약간의 데미지를 주고 싶다면 여기서 bossControl.TakeDamage(약한데미지); 호출 가능
 
             // if (impactEffectPrefab_Body != null) Instantiate(impactEffectPrefab_Body, transform.position, Quaternion.identity);
             Destroy(gameObject); // 돌멩이 파괴

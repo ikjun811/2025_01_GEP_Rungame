@@ -30,7 +30,7 @@ public class PlayerControl : MonoBehaviour
 
     public Slider staminaSlider; //스테미나 확인용 슬라이드
 
-    public float dashDistance = 50f; // 돌진 거리
+    public float dashDistance = 100f; // 돌진 거리
     public float dashSpeedMultiplier = 5f; // 돌진 속도 배율
     public float dashStaminaCost = 20f; // 돌진 시 스테미너 소모량
     public float dashCoolDownTime = 1f; // 돌진 쿨타임
@@ -42,8 +42,8 @@ public class PlayerControl : MonoBehaviour
     private float dashTimer = 0.0f;   // 돌진 상태 내부 타이머
 
     public float lateralSpeed = 8.0f; // 좌우 이동 속도
-    public float minZPos = -8f; // 왼쪽 이동 제한
-    public float maxZPos = 8f;  // 오른쪽 이동 제한
+    public float minZPos = -7f; // 왼쪽 이동 제한
+    public float maxZPos = 7f;  // 오른쪽 이동 제한
 
     [Header("플레이어 체력")]
     public float maxPlayerHp = 100f;
@@ -54,7 +54,8 @@ public class PlayerControl : MonoBehaviour
     private bool hasStone = false;
     public GameObject stoneProjectilePrefab;
     public Transform stoneSpawnPoint;       // 돌멩이가 발사될 위치 
-    public float stoneThrowForce = 50f;   // 돌멩이 발사 힘
+    //public float stoneThrowForce = 50f;   // 돌멩이 발사 힘
+    public float additionalStoneSpeed = 15f;
     public GameObject heldStoneVisual;
 
 
@@ -475,20 +476,45 @@ public class PlayerControl : MonoBehaviour
         }
 
         Debug.Log("돌멩이 투척!");
-        GameObject stone = Instantiate(stoneProjectilePrefab, stoneSpawnPoint.position, stoneSpawnPoint.rotation);
-        Rigidbody stoneRb = stone.GetComponent<Rigidbody>();
+        // 1. 발사 방향 결정
+        Vector3 throwDirection = Vector3.right; // (1, 0, 0)
+
+        // 2. 돌멩이 초기 회전 설정: 발사 방향을 바라보도록 합니다.
+        Quaternion projectileRotation = Quaternion.LookRotation(throwDirection);
+        //    또는, stoneSpawnPoint의 회전을 사용하고 싶다면:
+        //    Quaternion projectileRotation = stoneSpawnPoint.rotation;
+        //    Vector3 throwDirection = stoneSpawnPoint.forward; // 이 경우 스폰포인트 방향을 사용
+
+        // 3. 돌멩이 인스턴스 생성
+        GameObject stoneInstance = Instantiate(stoneProjectilePrefab, stoneSpawnPoint.position, projectileRotation);
+        Rigidbody stoneRb = stoneInstance.GetComponent<Rigidbody>();
         if (stoneRb != null)
         {
             // stoneSpawnPoint의 앞쪽 방향으로 발사
-            stoneRb.AddForce(stoneSpawnPoint.forward * stoneThrowForce, ForceMode.Impulse);
+            float targetStoneSpeed = this.current_speed + additionalStoneSpeed;
+            stoneRb.velocity = throwDirection * targetStoneSpeed;
+
+
         }
         else
         {
-            Debug.LogWarning("돌멩이 프리팹에 Rigidbody가 없습니다. 직접 움직이는 스크립트가 필요합니다.");
+            StoneProjectile projScript = stoneInstance.GetComponent<StoneProjectile>();
+            if (projScript != null)
+            {
+                float targetStoneSpeed = this.current_speed + additionalStoneSpeed;
+                // projScript.InitializeMovement(throwDirection, targetStoneSpeed); // StoneProjectile에 이런 함수 필요
+            }
         }
 
         hasStone = false; // 돌멩이 사용
         heldStoneVisual.SetActive(false);
+    }
+
+    public void RestoreHealth()
+    {
+        currentPlayerHp = maxPlayerHp;
+        UpdatePlayerHealthUI(); // UI도 업데이트
+        Debug.Log("플레이어 체력 모두 회복!");
     }
 
 }

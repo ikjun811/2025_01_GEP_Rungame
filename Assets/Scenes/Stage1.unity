@@ -511,19 +511,19 @@ MonoBehaviour:
   maxFloatYSpeed: 2
   upwardForceValue: 0.1
   staminaSlider: {fileID: 949998046}
-  dashDistance: 15
+  dashDistance: 50
   dashSpeedMultiplier: 3
   dashStaminaCost: 20
   dashCoolDownTime: 1
   dashDuration: 0.2
   lateralSpeed: 8
-  minZPos: -8
-  maxZPos: 8
+  minZPos: -7
+  maxZPos: 7
   maxPlayerHp: 100
   playerHealthSlider: {fileID: 1311089176}
   stoneProjectilePrefab: {fileID: 7042626377303986033, guid: 40d106cae3c3cb14caab7bdbdce747f2, type: 3}
   stoneSpawnPoint: {fileID: 372310467}
-  stoneThrowForce: 100
+  additionalStoneSpeed: 50
   heldStoneVisual: {fileID: 1271856811}
   step: -1
   next_step: -1
@@ -537,7 +537,7 @@ SphereCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 191032048}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: 572d7a04d5fdc3948b83e43409a31560, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -644,7 +644,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 1
   m_Constraints: 112
-  m_CollisionDetection: 0
+  m_CollisionDetection: 2
 --- !u!1 &307296535
 GameObject:
   m_ObjectHideFlags: 0
@@ -1111,6 +1111,7 @@ MonoBehaviour:
   HEIGHT_MAX: 20
   HEIGHT_MIN: -4
   bossInstance: {fileID: 547511835}
+  generateSafeFloorOnly: 0
   block_count: 0
 --- !u!114 &437726568
 MonoBehaviour:
@@ -1125,6 +1126,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   step_timer: 0
+  totalGameStages: 3
+  stageClearUIPanel: {fileID: 1510744639}
+  stageClearDisplayTime: 3
+  stageDisplayText: {fileID: 390040765}
+  levelControlInstance: {fileID: 437726567}
+  mapCreatorInstance: {fileID: 437726569}
+  playerControlInstance: {fileID: 191032049}
+  bossInstance: {fileID: 547511835}
 --- !u!114 &437726569
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1189,7 +1198,7 @@ GameObject:
   - component: {fileID: 547511835}
   m_Layer: 0
   m_Name: Boss
-  m_TagString: Untagged
+  m_TagString: Boss
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1297,7 +1306,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerTransform: {fileID: 191032053}
-  followDistance: 40
+  followDistance: 50
   yPosition: 5
   zPositionOffset: 0
   maxHp: 0
@@ -1307,7 +1316,7 @@ MonoBehaviour:
   - {fileID: 2061488973}
   - {fileID: 1111502899}
   - {fileID: 1027881566}
-  wallSpeed: 20
+  wallSpeed: 10
   initialFireInterval: 5
   weakPointMoveInterval: 3
   bossHealthSlider: {fileID: 187123301}
@@ -1665,7 +1674,7 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 90
+  field of view: 110
   orthographic: 0
   orthographic size: 5
   m_Depth: -1
