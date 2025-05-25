@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class StoneProjectile : MonoBehaviour
@@ -32,11 +34,6 @@ public class StoneProjectile : MonoBehaviour
             // if (impactEffectPrefab != null) Instantiate(impactEffectPrefab, transform.position, Quaternion.identity);
             Destroy(gameObject); // 돌멩이 파괴
         }
-        // (선택적) 다른 벽이나 오브젝트에 부딪혔을 때도 파괴
-        // else if (!other.CompareTag("Player") && !other.CompareTag("BossWall")) // 플레이어나 보스벽이 아닐 때
-        // {
-        //     Destroy(gameObject);
-        // }
 
         if (other.CompareTag("Boss"))
         {
@@ -54,6 +51,6 @@ public class StoneProjectile : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+
     }
 }

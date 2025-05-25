@@ -11,13 +11,13 @@ public class BlockCreator : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+
     }
 
     public void createBlock(Vector3 block_position)

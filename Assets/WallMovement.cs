@@ -8,21 +8,17 @@ public class WallMovement : MonoBehaviour
     private float speed;
     private Vector3 direction;
     private bool isInitialized = false;
-
-
-    // 화면 밖으로 나가면 자동 파괴될 X 좌표
-    private float despawnXPosition = -50f;
     private Transform playerTransformForDespawn;
 
     public float damageToPlayer = 20f;
 
+
     public void Initialize(Vector3 dir, float spd)
     {
-        this.direction = dir.normalized; // 방향 벡터 정규화
+        this.direction = dir.normalized;
         this.speed = spd;
         this.isInitialized = true;
 
-        // 벽이 진행 방향을 바라보도록 회전 (선택적)
         if (this.direction != Vector3.zero)
         {
             transform.rotation = Quaternion.LookRotation(this.direction);
@@ -42,15 +38,18 @@ public class WallMovement : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (!isInitialized) return;
+
         transform.Translate(direction * speed * Time.deltaTime, Space.World);
 
-        if (playerTransformForDespawn != null && transform.position.x < playerTransformForDespawn.position.x - 30f)
+        // 화면 왼쪽으로 너무 멀리 벗어나면 자동 파괴 (플레이어 기준)
+        if (playerTransformForDespawn != null && transform.position.x < playerTransformForDespawn.position.x - 50f) // 50f는 예시 거리
         {
             Destroy(gameObject);
         }
-        else if (playerTransformForDespawn == null && transform.position.x < despawnXPosition)
+        // 플레이어를 못 찾았을 경우 대비, 절대 좌표 기준으로도 파괴 (선택적)
+        else if (playerTransformForDespawn == null && transform.position.x < -100f) // -100f는 예시 좌표
         {
-            // 플레이어를 못찾았을 경우 대비 고정 좌표 기반 파괴
             Destroy(gameObject);
         }
     }
@@ -62,21 +61,16 @@ public class WallMovement : MonoBehaviour
             PlayerControl playerControl = other.GetComponent<PlayerControl>();
             if (playerControl != null)
             {
-                // 플레이어가 돌진 중인지 확인 (PlayerControl에 IsPlayerDashing() 메서드가 있다고 가정)
-                if (playerControl.IsPlayerDashing())
+                if (playerControl.IsPlayerDashing()) // 플레이어가 돌진 중이면
                 {
-                    Debug.Log("플레이어가 돌진으로 벽 돌파!");
                     playerControl.CollectStone(); // 돌멩이 획득
-                    Destroy(gameObject); // 벽 파괴 (데미지 없음)
                 }
-                else
+                else // 돌진 중이 아니면 데미지
                 {
-                    Debug.Log("플레이어가 벽에 충돌!");
-                    playerControl.TakeDamage(damageToPlayer); // 플레이어 데미지
-                    Destroy(gameObject); // 벽 파괴
+                    playerControl.TakeDamage(damageToPlayer);
                 }
             }
+            Destroy(gameObject); // 벽은 플레이어와 상호작용 후 파괴
         }
     }
-
 }

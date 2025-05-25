@@ -109,7 +109,7 @@ public class PlayerControl : MonoBehaviour
     void Update()
     {
         //미사용
-       // this.transform.Translate(new Vector3(0.0f, 0.0f, 3.0f * Time.deltaTime));
+        // this.transform.Translate(new Vector3(0.0f, 0.0f, 3.0f * Time.deltaTime));
 
         Rigidbody rb = this.GetComponent<Rigidbody>();
         Vector3 velocity = rb.velocity; // 속도를 설정
@@ -152,7 +152,7 @@ public class PlayerControl : MonoBehaviour
                 currentStamina -= staminaToConsume;
                 currentStamina = Mathf.Clamp(currentStamina, 0f, maxStamina);
             }
-            
+
             UpdateStaminaUI();
         }
 
@@ -398,13 +398,15 @@ public class PlayerControl : MonoBehaviour
             Vector3 s = this.transform.position; // Player의 현재 위치
             Vector3 e = s + Vector3.down * 1.0f; // s부터 아래로 1로 이동한 위치
             RaycastHit hit;
-            if(!Physics.Linecast(s, e, out hit)) { // s부터 e 사이에 아무것도 없을 때
+            if (!Physics.Linecast(s, e, out hit))
+            { // s부터 e 사이에 아무것도 없을 때
                 break; // 아무것도 하지 않고 do~while 루프를 빠져나감(탈출구로)
             }
             // s부터 e 사이에 뭔가 있을 때 아래의 처리가 실행
-            if(this.step == STEP.JUMP) { // 현재, 점프, 더블점프 상태라면
-                if(this.step_timer < Time.deltaTime * 0.1f) 
-                    { // 경과 시간이 0.1f 미만이라면
+            if (this.step == STEP.JUMP)
+            { // 현재, 점프, 더블점프 상태라면
+                if (this.step_timer < Time.deltaTime * 0.1f)
+                { // 경과 시간이 0.1f 미만이라면
                     break; // 아무것도 하지 않고 do~while 루프를 빠져나감(탈출구로)
                 }
             }
@@ -451,7 +453,7 @@ public class PlayerControl : MonoBehaviour
 
     void Die()
     {
-        this.next_step = STEP.MISS; 
+        this.next_step = STEP.MISS;
     }
 
     public void CollectStone()

@@ -521,7 +521,7 @@ MonoBehaviour:
   maxZPos: 8
   maxPlayerHp: 100
   playerHealthSlider: {fileID: 1311089176}
-  stoneProjectilePrefab: {fileID: 1340999184213857459, guid: d8f89a7b8b2bb974892e1954a55efa33, type: 3}
+  stoneProjectilePrefab: {fileID: 7042626377303986033, guid: 40d106cae3c3cb14caab7bdbdce747f2, type: 3}
   stoneSpawnPoint: {fileID: 372310467}
   stoneThrowForce: 100
   heldStoneVisual: {fileID: 1271856811}
@@ -1125,14 +1125,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   step_timer: 0
-  totalGameStages: 3
-  stageClearUIPanel: {fileID: 1510744639}
-  stageClearDisplayTime: 3
-  stageDisplayText: {fileID: 390040765}
-  levelControlInstance: {fileID: 437726567}
-  mapCreatorInstance: {fileID: 437726569}
-  playerControlInstance: {fileID: 191032049}
-  bossInstance: {fileID: 547511835}
 --- !u!114 &437726569
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1309,7 +1301,7 @@ MonoBehaviour:
   yPosition: 5
   zPositionOffset: 0
   maxHp: 0
-  wallPrefab: {fileID: 1165548928485590680, guid: 4965533402dfd934aa7ae32908572ec0, type: 3}
+  wallPrefab: {fileID: 5380733653009047593, guid: 1d21df43e9bbc73428480fa8e027b549, type: 3}
   weakPointObject: {fileID: 6035303}
   firePoints:
   - {fileID: 2061488973}

@@ -93,11 +93,14 @@ public class BossControl : MonoBehaviour
 
     void HandleAttack()
     {
-        fireTimer -= Time.deltaTime;
-        if (fireTimer <= 0f)
+        if (gameObject.activeSelf && currentHp > 0)
         {
-            FireWall();
-            fireTimer = currentFireInterval; // 다음 발사 시간으로 타이머 리셋
+            fireTimer -= Time.deltaTime;
+            if (fireTimer <= 0f)
+            {
+                FireWall();
+                fireTimer = currentFireInterval; // 다음 발사 시간으로 타이머 리셋
+            }
         }
     }
 
@@ -109,32 +112,44 @@ public class BossControl : MonoBehaviour
             return;
         }
 
-        // firePoints 배열에서 랜덤하게 하나 선택
+        // 1. 발사 지점 랜덤 선택 (기존과 동일)
         int randomIndex = Random.Range(0, firePoints.Length);
         Transform selectedFirePoint = firePoints[randomIndex];
+        if (selectedFirePoint == null)
+        {
+            Debug.LogError($"보스 공격 실패: Fire Points 배열의 {randomIndex}번 요소가 null입니다!");
+            return;
+        }
 
-        // 벽의 이동 방향 설정: 월드 X축 음의 방향 (Vector3.left)
-        Vector3 wallTravelDirection = Vector3.left;
+        // 2. ⭐ 벽의 이동 방향을 월드 X축 음의 방향으로 고정 ⭐
+        Vector3 wallTravelDirection = Vector3.left; // Vector3.left는 (-1, 0, 0) 입니다.
 
+        // 3. (선택적) 벽의 초기 회전값 설정: 벽이 이동 방향(Vector3.left)을 바라보도록 합니다.
+        //    벽 프리팹의 로컬 Z축이 '앞'을 향하도록 디자인되었다고 가정합니다.
         Quaternion wallInitialRotation = Quaternion.LookRotation(wallTravelDirection);
+        //    만약 벽이 구체처럼 방향성이 없거나, firePoint의 기본 회전값을 사용하고 싶다면
+        //    wallInitialRotation = selectedFirePoint.rotation; 또는 Quaternion.identity; 로 설정할 수 있습니다.
 
-        // 벽 인스턴스 생성
+        // 4. 벽 인스턴스 생성
         GameObject wallInstance = Instantiate(wallPrefab, selectedFirePoint.position, wallInitialRotation);
+        // Debug.Log($"벽 생성됨: {wallInstance.name} at {selectedFirePoint.position}");
 
-        // 벽 오브젝트에 Rigidbody가 있고, 별도의 이동 스크립트가 없다면 여기서 속도 설정
+        // 5. 벽 이동 처리
         Rigidbody wallRb = wallInstance.GetComponent<Rigidbody>();
         if (wallRb != null)
         {
+            // Rigidbody의 속도를 고정된 방향과 속도로 설정
             wallRb.velocity = wallTravelDirection * wallSpeed;
+            // Debug.Log($"벽 Rigidbody 속도 설정: {wallRb.velocity}");
         }
         else
         {
-            // Rigidbody가 없다면, 벽 프리팹에 WallMovement.cs 같은 이동 스크립트를 만들어 붙이고,
-            // 해당 스크립트에 방향과 속도를 전달하는 것이 좋습니다.
+            // Rigidbody가 없다면 WallMovement 스크립트로 이동 처리 시도
             WallMovement wallMovementScript = wallInstance.GetComponent<WallMovement>();
             if (wallMovementScript != null)
             {
                 wallMovementScript.Initialize(wallTravelDirection, wallSpeed);
+                // Debug.Log("벽 WallMovement 스크립트로 이동 초기화.");
             }
             else
             {
@@ -160,10 +175,11 @@ public class BossControl : MonoBehaviour
     {
         Debug.Log("보스 처치!");
         // (사망 이펙트, 아이템 드랍, 스테이지 클리어 등의 로직)
-        GameRoot.Instance.NotifyStageCleared();
-        if (bossHealthSlider != null) bossHealthSlider.gameObject.SetActive(false); // 체력바 숨김
-        gameObject.SetActive(false); // 보스 오브젝트 비활성화
-
+        if (bossHealthSlider != null) // ⭐ 보스 사망 시 체력바 처리 (선택적)
+        {
+            bossHealthSlider.value = 0;
+        }
+        Destroy(gameObject);
     }
 
     public void UpdateBossStats(float newMaxHp, float newFireInterval)
@@ -226,17 +242,6 @@ public class BossControl : MonoBehaviour
         {
             // Debug.LogWarning("BossHealthSlider가 할당되지 않았습니다."); // 필요하다면 경고 로그
         }
-    }
-
-    public void ResetState()
-    {
-        currentHp = maxHp; // UpdateBossStats에서 이미 maxHp가 설정된 후 호출된다고 가정
-        fireTimer = currentFireInterval; // 또는 initialFireInterval
-                                         // 필요하다면 초기 위치로 이동하는 로직
-                                         // transform.position = initialPosition; // initialPosition 변수 필요
-        UpdateBossHealthUI(); // UI 갱신
-        gameObject.SetActive(true); // 활성화
-        Debug.Log("보스 상태 리셋됨.");
     }
 
 }
