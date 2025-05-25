@@ -5,13 +5,13 @@ using UnityEngine.UI;
 
 public class PlayerControl : MonoBehaviour
 {
-    public static float ACCELERATION = 10.0f; // 가속도
-    public static float SPEED_MIN = 4.0f; // 속도의 최솟값
-    public static float SPEED_MAX = 8.0f; // 속도의 최댓값
-    public static float JUMP_HEIGHT_MAX = 3.0f; // 점프 높이
+    public static float ACCELERATION = 30.0f; // 가속도
+    public static float SPEED_MIN = 12.0f; // 속도의 최솟값
+    public static float SPEED_MAX = 18.0f; // 속도의 최댓값
+    public static float JUMP_HEIGHT_MAX = 6.0f; // 점프 높이
     public static float JUMP_KEY_RELEASE_REDUCE = 0.5f; // 점프 감속도
     public static float DOUBLE_JUMP_HEIGHT_REDUCE = 0.7f; //더블 점프 감속도
-    public float floatStaminaCostRate = 10f; // 부양 중 초당 스테미너 소모량
+    public float floatStaminaCostRate = 30f; // 부양 중 초당 스테미너 소모량
     public float minFloatStamina = 5f; // 부양 가능 최소 스테미너
 
 
@@ -19,12 +19,14 @@ public class PlayerControl : MonoBehaviour
     public float currentStamina = 100f;       // 현재 스태미너
     public float staminaJumpCost = 5f;       // 점프 스태미너 소모량
     public float staminaDoubleJumpCost = 5f; // 더블 점프 스테미너 소모량
-    public float staminaRecoveryRate = 15f;   // 초당 스태미너 회복량
+    public float staminaRecoveryRate = 10f;   // 초당 스태미너 회복량
     public float staminaRecoveryDelay = 0.1f;  // 회복 딜레이 시간 (착지 후 바로 회복 시작)
-    private float staminaRecoveryTimer = 0f;   // 스태미너 회복 타이머
+    //private float staminaRecoveryTimer = 0f;   // 스태미너 회복 타이머
+
     private bool isFloating = false;         // 부양 중인지 여부
     private bool hasDoubleJumped = false;    // 더블 점프를 이미 수행했는지 여부
     public float maxFloatYSpeed = 2f;
+    public float upwardForceValue = 0.1f; //부양에 가하는 힘
 
     public Slider staminaSlider; //스테미나 확인용 슬라이드
 
@@ -38,6 +40,22 @@ public class PlayerControl : MonoBehaviour
 
     public float dashDuration = 0.2f; // 예: 0.2초 동안 돌진 상태 유지
     private float dashTimer = 0.0f;   // 돌진 상태 내부 타이머
+
+    public float lateralSpeed = 8.0f; // 좌우 이동 속도
+    public float minZPos = -8f; // 왼쪽 이동 제한
+    public float maxZPos = 8f;  // 오른쪽 이동 제한
+
+    [Header("플레이어 체력")]
+    public float maxPlayerHp = 100f;
+    private float currentPlayerHp;
+    public Slider playerHealthSlider;
+
+    [Header("투척용 돌멩이")]
+    private bool hasStone = false;
+    public GameObject stoneProjectilePrefab;
+    public Transform stoneSpawnPoint;       // 돌멩이가 발사될 위치 
+    public float stoneThrowForce = 50f;   // 돌멩이 발사 힘
+    public GameObject heldStoneVisual;
 
 
     public enum STEP
@@ -77,12 +95,21 @@ public class PlayerControl : MonoBehaviour
         hasDoubleJumped = false;
         isDashing = false;
         dashCoolDownTimer = 0f;
+        currentPlayerHp = maxPlayerHp;
+        hasStone = false;
+        if (heldStoneVisual != null)
+        {
+            heldStoneVisual.SetActive(hasStone); // 초기 상태에 맞춰 비활성화
+        }
+        UpdatePlayerHealthUI();
+
     }
 
     // Update is called once per frame
     void Update()
     {
-        this.transform.Translate(new Vector3(0.0f, 0.0f, 3.0f * Time.deltaTime));
+        //미사용
+       // this.transform.Translate(new Vector3(0.0f, 0.0f, 3.0f * Time.deltaTime));
 
         Rigidbody rb = this.GetComponent<Rigidbody>();
         Vector3 velocity = rb.velocity; // 속도를 설정
@@ -105,7 +132,7 @@ public class PlayerControl : MonoBehaviour
         {
             isFloating = false;       // 착지하면 부양 종료
             hasDoubleJumped = false;  // 착지하면 더블 점프 수행 상태 초기화
-            isDashing = false;
+
         }
 
 
@@ -116,23 +143,27 @@ public class PlayerControl : MonoBehaviour
         }
 
         // 부양 로직
-        if (isFloating && Input.GetMouseButton(0) && currentStamina > minFloatStamina && step == STEP.JUMP && hasDoubleJumped)
+        if (isFloating && step == STEP.JUMP && hasDoubleJumped)
         {
-            if (rb.velocity.y < maxFloatYSpeed) // 현재 Y 속도가 최대치보다 작을 때만 힘을 가함
+            if (Input.GetKey(KeyCode.Space) && currentStamina > minFloatStamina) // 현재 Y 속도가 최대치보다 작을 때만 힘을 가함
             {
-                rb.AddForce(Vector3.up * 20f, ForceMode.VelocityChange); // 현재 값 유지 또는 조절
+                rb.AddForce(Vector3.up * upwardForceValue, ForceMode.VelocityChange);
+                float staminaToConsume = floatStaminaCostRate * Time.deltaTime;
+                currentStamina -= staminaToConsume;
+                currentStamina = Mathf.Clamp(currentStamina, 0f, maxStamina);
             }
-            currentStamina -= floatStaminaCostRate * Time.deltaTime;
-            currentStamina = Mathf.Clamp(currentStamina, 0f, maxStamina);
+            
             UpdateStaminaUI();
         }
-        else
+
+        if (hasStone && Input.GetMouseButtonDown(0)) // 마우스 휠 클릭 (가운데 버튼) 그리고 돌멩이가 있을때
         {
-            if (isFloating)
-            {
-                isFloating = false;
-            }
+            ThrowStone();
         }
+
+
+
+
 
         if (Input.GetMouseButtonDown(1) &&      // 우클릭
         this.step != STEP.DASH &&           // 현재 돌진 상태가 아닐 때 (중복 방지)
@@ -165,7 +196,7 @@ public class PlayerControl : MonoBehaviour
 
         this.step_timer += Time.deltaTime; // 경과 시간을 진행
 
-        if (Input.GetMouseButtonDown(0))
+        if (Input.GetKeyDown(KeyCode.Space))
         { // 버튼이 눌렸으면,
             this.click_timer = 0.0f; // 타이머를 리셋
         }
@@ -272,19 +303,15 @@ public class PlayerControl : MonoBehaviour
         switch (this.step)
         {
             case STEP.RUN: // 달리는 중일 때,
-                //속도 증가
-                velocity.x += PlayerControl.ACCELERATION * Time.deltaTime;
-
-                if (Mathf.Abs(velocity.x) > this.current_speed)
-                { // 계산으로 구한 속도가 설정해야 할 속도를 넘으면,
-                    velocity.x *= this.current_speed / Mathf.Abs(velocity.x); // 넘지 않게 조정
-                }
+                           //속도 증가
+                velocity.x = this.current_speed;
                 break;
             case STEP.JUMP: // 점프 중일 때
+                velocity.x = this.current_speed;
                 do
                 {
                     // '버튼이 떨어진 순간'이 아니면
-                    if (!Input.GetMouseButtonUp(0))
+                    if (!Input.GetKeyUp(KeyCode.Space))
                     {
                         break; // 아무것도 하지 않고 루프를 빠져나감
                     }
@@ -325,6 +352,8 @@ public class PlayerControl : MonoBehaviour
                     // 돌진 종료
                     this.isDashing = false;
 
+                    velocity.x = this.current_speed;
+
                     if (this.is_landed)
                     {
                         this.next_step = STEP.RUN;
@@ -337,13 +366,33 @@ public class PlayerControl : MonoBehaviour
                 }
                 break;
         }
+
+        float lateralInput = 0f;
+        if (Input.GetKey((KeyCode)97)) // 'A' 키 누르면 왼쪽으로
+        {
+            lateralInput = 1f;
+        }
+        else if (Input.GetKey((KeyCode)100)) // 'D' 키 누르면 오른쪽으로
+        {
+            lateralInput = -1f;
+        }
+        velocity.z = lateralInput * lateralSpeed;
+
+        Vector3 clampedPos = rb.position;
+        clampedPos.z = Mathf.Clamp(rb.position.z, minZPos, maxZPos);
+        rb.position = clampedPos; //좌우 이동 제한
+
         // Rigidbody의 속도를 위에서 구한 속도로 갱신 (이 행은 상태에 관계없이 매번 실행)
         rb.velocity = velocity;
     }
 
     private void check_landed()
     { // 착지했는지 조사
-        this.is_landed = false; // 일단 false로 설정
+        if (this.step == STEP.JUMP && this.step_timer < 0.1f) //잠깐 딜레이
+        {
+            this.is_landed = false;
+            return; // check_landed 함수를 여기서 종료
+        }
         do
         {
             Vector3 s = this.transform.position; // Player의 현재 위치
@@ -377,4 +426,67 @@ public class PlayerControl : MonoBehaviour
     {
         return this.step == STEP.DASH;
     }
+
+    public void TakeDamage(float amount)
+    {
+        if (step == STEP.MISS) return; // 이미 죽은 상태면 데미지 안 받음
+
+        currentPlayerHp -= amount;
+        currentPlayerHp = Mathf.Clamp(currentPlayerHp, 0, maxPlayerHp);
+        UpdatePlayerHealthUI();
+
+        if (currentPlayerHp <= 0)
+        {
+            Die();
+        }
+    }
+
+    void UpdatePlayerHealthUI()
+    {
+        if (playerHealthSlider != null)
+        {
+            playerHealthSlider.value = currentPlayerHp / maxPlayerHp; // 슬라이더 값은 0~1 사이
+        }
+    }
+
+    void Die()
+    {
+        this.next_step = STEP.MISS; 
+    }
+
+    public void CollectStone()
+    {
+        if (!hasStone) // 돌멩이가 없을 때만 획득
+        {
+            hasStone = true;
+            heldStoneVisual.SetActive(true);
+            Debug.Log("돌멩이 획득!");
+        }
+    }
+
+    void ThrowStone()
+    {
+        if (stoneProjectilePrefab == null || stoneSpawnPoint == null)
+        {
+            Debug.LogError("돌멩이 프리팹 또는 발사 위치가 설정되지 않았습니다!");
+            return;
+        }
+
+        Debug.Log("돌멩이 투척!");
+        GameObject stone = Instantiate(stoneProjectilePrefab, stoneSpawnPoint.position, stoneSpawnPoint.rotation);
+        Rigidbody stoneRb = stone.GetComponent<Rigidbody>();
+        if (stoneRb != null)
+        {
+            // stoneSpawnPoint의 앞쪽 방향으로 발사
+            stoneRb.AddForce(stoneSpawnPoint.forward * stoneThrowForce, ForceMode.Impulse);
+        }
+        else
+        {
+            Debug.LogWarning("돌멩이 프리팹에 Rigidbody가 없습니다. 직접 움직이는 스크립트가 필요합니다.");
+        }
+
+        hasStone = false; // 돌멩이 사용
+        heldStoneVisual.SetActive(false);
+    }
+
 }

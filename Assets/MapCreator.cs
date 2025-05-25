@@ -40,19 +40,17 @@ public class MapCreator : MonoBehaviour
 
     void Start()
     {
-        this.player = GameObject.FindGameObjectWithTag("Player")
-        .GetComponent<PlayerControl>();
+        this.player = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerControl>();
         this.last_block.is_created = false;
         this.block_creator = this.gameObject.GetComponent<BlockCreator>();
 
-        this.level_control = new LevelControl();
-        this.level_control.initialize();
+        this.level_control = GetComponent<LevelControl>();
 
-        this.level_control.loadLevelData(this.level_data_text);
+        // this.level_control.loadLevelData(this.level_data_text);
 
         this.player.level_control = this.level_control;
 
-        this.game_root = this.gameObject.GetComponent<GameRoot>(); // 끝에 추가
+        this.game_root = this.gameObject.GetComponent<GameRoot>();
     }
 
     void Update()
@@ -92,19 +90,18 @@ public class MapCreator : MonoBehaviour
                                          // 아래 부분을 주석 처리(혹은 삭제)
                                          // this.block_creator.createBlock(block_position);
                                          // 아래 부분을 추가.
-        this.level_control.update(this.game_root.getPlayTime());
-        // 지금 만들 블록 정보의 height(높이)를 scene 상의 좌표로 변환
-        block_position.y = level_control.current_block.height * BLOCK_HEIGHT;
-        // 지금 만들 블록에 관한 정보를 변수 current에 넣음
-        LevelControl.CreationInfo current = this.level_control.current_block;
-        // 지금 만들 블록이 바닥이면(지금 만들 블록이 구멍이라면),
+        this.level_control.PrepareNextBlockPatternForMapCreator();
+        LevelControl.CreationInfo current = this.level_control.current_block; // 준비된 정보 가져오기
+        block_position.y = current.height * BLOCK_HEIGHT;
+
         if (current.block_type == Block.TYPE.FLOOR)
         {
-            // block_position의 위치에 블록을 실제로 생성
-            this.block_creator.createBlock(block_position);
+            this.block_creator.createBlock(block_position); // 바닥이면 생성
         }
-        this.last_block.position = block_position; // last_block의 위치를 갱신
-        this.last_block.is_created = true; // 블록이 생성됨
+
+
+        this.last_block.position = block_position;
+        this.last_block.is_created = true;
     }
 
     public bool isDelete(GameObject block_object)
