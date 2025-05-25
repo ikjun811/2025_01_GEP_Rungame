@@ -1,46 +1,59 @@
-using System.Collections;
+ï»¿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using static LevelControl;
+using UnityEngine.SceneManagement;
 
-// Block Å¬·¡½º Ãß°¡
+
+// Block í´ë˜ìŠ¤ ì¶”ê°€
 public class Block
 {
-    // ºí·ÏÀÇ Á¾·ù¸¦ ³ªÅ¸³»´Â ¿­°ÅÃ¼
+    // ë¸”ë¡ì˜ ì¢…ë¥˜ë¥¼ ë‚˜íƒ€ë‚´ëŠ” ì—´ê±°ì²´
     public enum TYPE
     {
-        NONE = -1, // ¾øÀ½
-        FLOOR = 0, // ¸¶·ç
-        HOLE, // ±¸¸Û
-        NUM, // ºí·ÏÀÌ ¸î Á¾·ùÀÎÁö(£½2)
+        NONE = -1, // ì—†ìŒ
+        FLOOR = 0, // ë§ˆë£¨
+        HOLE, // êµ¬ë©
+        NUM, // ë¸”ë¡ì´ ëª‡ ì¢…ë¥˜ì¸ì§€(ï¼2)
     };
 };
 
 public class MapCreator : MonoBehaviour
 {
-    public static float BLOCK_WIDTH = 1.0f; // ºí·ÏÀÇ Æø
-    public static float BLOCK_HEIGHT = 0.2f; // ºí·ÏÀÇ ³ôÀÌ
-    public static int BLOCK_NUM_IN_SCREEN = 72;// È­¸é ³»¿¡ µé¾î°¡´Â ºí·ÏÀÇ °³¼ö
-                                               // ºí·Ï¿¡ °üÇÑ Á¤º¸¸¦ ¸ğ¾Æ¼­ °ü¸®ÇÏ´Â ±¸Á¶Ã¼
-                                               // (¿©·¯ °³ÀÇ Á¤º¸¸¦ ÇÏ³ª·Î ¹­À» ¶§ »ç¿ë)
+    public static float BLOCK_WIDTH = 1.0f; // ë¸”ë¡ì˜ í­
+    public static float BLOCK_HEIGHT = 0.2f; // ë¸”ë¡ì˜ ë†’ì´
+    public static int BLOCK_NUM_IN_SCREEN = 72;// í™”ë©´ ë‚´ì— ë“¤ì–´ê°€ëŠ” ë¸”ë¡ì˜ ê°œìˆ˜
+                                               // ë¸”ë¡ì— ê´€í•œ ì •ë³´ë¥¼ ëª¨ì•„ì„œ ê´€ë¦¬í•˜ëŠ” êµ¬ì¡°ì²´
+                                               // (ì—¬ëŸ¬ ê°œì˜ ì •ë³´ë¥¼ í•˜ë‚˜ë¡œ ë¬¶ì„ ë•Œ ì‚¬ìš©)
     private struct FloorBlock
     {
-        public bool is_created; // ºí·ÏÀÌ ¸¸µé¾îÁ³´Â°¡
-        public Vector3 position; // ºí·ÏÀÇ À§Ä¡
+        public bool is_created; // ë¸”ë¡ì´ ë§Œë“¤ì–´ì¡ŒëŠ”ê°€
+        public Vector3 position; // ë¸”ë¡ì˜ ìœ„ì¹˜
     };
-    private FloorBlock last_block; // ¸¶Áö¸·¿¡ »ı¼ºÇÑ ºí·Ï
-    private PlayerControl player = null;// scene»óÀÇ Player¸¦ º¸°ü
-    private BlockCreator block_creator; // BlockCreator¸¦ º¸°ü
+    private FloorBlock last_block; // ë§ˆì§€ë§‰ì— ìƒì„±í•œ ë¸”ë¡
+    private PlayerControl player = null;// sceneìƒì˜ Playerë¥¼ ë³´ê´€
+    private BlockCreator block_creator; // BlockCreatorë¥¼ ë³´ê´€
 
     private LevelControl level_control = null;
 
     public TextAsset level_data_text = null;
 
-    private GameRoot game_root = null; // ¸É¹ö º¯¼ö Ãß°¡
+    private GameRoot game_root = null; // ë§´ë²„ ë³€ìˆ˜ ì¶”ê°€
+
+    void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded; // ì´ë²¤íŠ¸ êµ¬ë…
+    }
+
+    void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded; // ì´ë²¤íŠ¸ êµ¬ë… í•´ì œ
+    }
+
 
     void Start()
     {
-        this.player = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerControl>();
+        //this.player = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerControl>();
         this.last_block.is_created = false;
         this.block_creator = this.gameObject.GetComponent<BlockCreator>();
 
@@ -48,56 +61,126 @@ public class MapCreator : MonoBehaviour
 
         // this.level_control.loadLevelData(this.level_data_text);
 
-        this.player.level_control = this.level_control;
+        //this.player.level_control = this.level_control;
 
-        this.game_root = this.gameObject.GetComponent<GameRoot>();
+        //this.game_root = this.gameObject.GetComponent<GameRoot>();
+    }
+
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        InitializeForNewScene();
+    }
+
+    void InitializeForNewScene()
+    {
+        // 1. í”Œë ˆì´ì–´ ì°¸ì¡° ë‹¤ì‹œ ì°¾ê¸°
+        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+        if (playerObject != null)
+        {
+            this.player = playerObject.GetComponent<PlayerControl>();
+            if (this.player != null)
+            {
+                Debug.Log("MapCreator: ìƒˆ ì”¬ì—ì„œ í”Œë ˆì´ì–´ë¥¼ ì„±ê³µì ìœ¼ë¡œ ì°¾ì•˜ìŠµë‹ˆë‹¤.");
+            }
+            else
+            {
+                Debug.LogError("MapCreator: 'Player' íƒœê·¸ë¥¼ ê°€ì§„ ì˜¤ë¸Œì íŠ¸ì—ì„œ PlayerControl ì»´í¬ë„ŒíŠ¸ë¥¼ ì°¾ì§€ ëª»í–ˆìŠµë‹ˆë‹¤.");
+                this.player = null; // í™•ì‹¤íˆ nullë¡œ ì„¤ì •
+            }
+        }
+        else
+        {
+            Debug.LogError("MapCreator: 'Player' íƒœê·¸ë¥¼ ê°€ì§„ í”Œë ˆì´ì–´ ì˜¤ë¸Œì íŠ¸ë¥¼ ìƒˆ ì”¬ì—ì„œ ì°¾ì§€ ëª»í–ˆìŠµë‹ˆë‹¤!");
+            this.player = null; // í™•ì‹¤íˆ nullë¡œ ì„¤ì •
+        }
+
+        // 2. LevelControl ì°¸ì¡° ë‹¤ì‹œ ì°¾ê¸°
+        LevelControl foundLevelControl = FindObjectOfType<LevelControl>(); // ì„ì‹œ ë³€ìˆ˜ì— ë°›ì•„ í™•ì¸
+
+        if (foundLevelControl != null)
+        {
+            this.level_control = foundLevelControl; // ì°¾ì•˜ìœ¼ë©´ í• ë‹¹
+            Debug.Log($"MapCreator: ìƒˆ ì”¬ì—ì„œ LevelControlì„ ì°¾ì•˜ìŠµë‹ˆë‹¤: {this.level_control.gameObject.name}");
+            if (this.player != null)
+            {
+                this.player.level_control = this.level_control;
+            }
+            this.level_control.InitializeBlockGeneration(); // ì´ì œ í˜¸ì¶œ ì‹œë„
+        }
+        else
+        {
+            Debug.LogError("MapCreator: ìƒˆ ì”¬ì—ì„œ LevelControlì„ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤! (FindObjectOfType ì‹¤íŒ¨)");
+            this.level_control = null; // ëª…ì‹œì ìœ¼ë¡œ null ì²˜ë¦¬
+                                       // ì•„ë˜ì˜ this.level_control != null ì¡°ê±´ì— ì˜í•´ InitializeBlockGeneration í˜¸ì¶œì´ ë§‰í˜
+        }
+
+        // GameRoot ì°¸ì¡°ëŠ” GameRoot.Instanceê°€ ì‹±ê¸€í†¤ì´ë¯€ë¡œ ë¹„êµì  ì•ˆì „í•©ë‹ˆë‹¤.
+        if (GameRoot.Instance != null)
+        {
+            this.game_root = GameRoot.Instance;
+        }
+        else
+        {
+            Debug.LogWarning("MapCreator: GameRoot ì¸ìŠ¤í„´ìŠ¤ë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.");
+        }
+
+        // 3. ë§µ ìƒì„± ìƒíƒœ ì´ˆê¸°í™”
+        this.last_block.is_created = false;
+        this.last_block.position = Vector3.zero; // last_block ìœ„ì¹˜ë„ ì´ˆê¸°í™”í•´ì£¼ëŠ” ê²ƒì´ ì•ˆì „í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.
+
+        Debug.Log("MapCreator: ìƒˆ ì”¬ì— ëŒ€í•œ ì´ˆê¸°í™” ì™„ë£Œ ì‹œë„.");
     }
 
     void Update()
     {
-        // ÇÃ·¹ÀÌ¾îÀÇ XÀ§Ä¡¸¦ °¡Á®¿È
+        // í”Œë ˆì´ì–´ì˜ Xìœ„ì¹˜ë¥¼ ê°€ì ¸ì˜´
         float block_generate_x = this.player.transform.position.x;
-        // ±×¸®°í ´ë·« ¹İ È­¸é¸¸Å­ ¿À¸¥ÂÊÀ¸·Î ÀÌµ¿
-        // ÀÌ À§Ä¡°¡ ºí·ÏÀ» »ı¼ºÇÏ´Â ¹®ÅÎ °ª
+        // ê·¸ë¦¬ê³  ëŒ€ëµ ë°˜ í™”ë©´ë§Œí¼ ì˜¤ë¥¸ìª½ìœ¼ë¡œ ì´ë™
+        // ì´ ìœ„ì¹˜ê°€ ë¸”ë¡ì„ ìƒì„±í•˜ëŠ” ë¬¸í„± ê°’
         block_generate_x += BLOCK_WIDTH * ((float)BLOCK_NUM_IN_SCREEN + 1) / 3.0f * 2.0f;
-        // ¸¶Áö¸·¿¡ ¸¸µç ºí·ÏÀÇ À§Ä¡°¡ ¹®ÅÎ °ªº¸´Ù ÀÛÀ¸¸é
+
         while (this.last_block.position.x < block_generate_x)
         {
-            // ºí·ÏÀ» ¸¸µë
+
             this.create_floor_block();
         }
     }
 
     private void create_floor_block()
     {
-        Vector3 block_position; // ÀÌÁ¦ºÎÅÍ ¸¸µé ºí·ÏÀÇ À§Ä¡
+        if (this.level_control == null)
+        {
+            Debug.LogError("create_floor_block: LevelControl ì°¸ì¡°ê°€ ì—†ìŠµë‹ˆë‹¤!");
+            return;
+        }
+        this.level_control.PrepareNextBlockPatternForMapCreator();
+        LevelControl.CreationInfo current = this.level_control.current_block;
+
+        Vector3 block_position;
         if (!this.last_block.is_created)
-        { // last_blockÀÌ »ı¼ºµÇÁö ¾ÊÀº °æ¿ì
-          // ºí·ÏÀÇ À§Ä¡¸¦ ÀÏ´Ü Player¿Í °°°Ô
-            block_position = this.player.transform.position;
-            // ±×·¯°í ³ª¼­ ºí·ÏÀÇ X À§Ä¡¸¦ È­¸é Àı¹İ¸¸Å­ ¿ŞÂÊÀ¸·Î ÀÌµ¿
+        {
+            block_position = this.player.transform.position; // í”Œë ˆì´ì–´ê°€ nullì´ë©´ ì—¬ê¸°ì„œë„ ì˜¤ë¥˜ ë°œìƒ ê°€ëŠ¥
             block_position.x -= BLOCK_WIDTH * ((float)BLOCK_NUM_IN_SCREEN / 3.0f);
-            // ºí·ÏÀÇ YÀ§Ä¡´Â 0À¸·Î
+
+
             block_position.y = 0.0f;
+
+
         }
         else
-        { // last_blockÀÌ »ı¼ºµÈ °æ¿ì
-          // ÀÌ¹ø¿¡ ¸¸µé ºí·ÏÀÇ À§Ä¡¸¦ Á÷Àü¿¡ ¸¸µç ºí·Ï°ú °°°Ô
+        {
             block_position = this.last_block.position;
         }
-        block_position.x += BLOCK_WIDTH; // ºí·ÏÀ» 1ºí·°¸¸Å­ ¿À¸¥ÂÊÀ¸·Î ÀÌµ¿
-                                         // BlockCreator ½ºÅ©¸³Æ®ÀÇ createBlock()¸Ş¼Òµå¿¡ »ı¼ºÀ» Áö½Ã
-                                         // ¾Æ·¡ ºÎºĞÀ» ÁÖ¼® Ã³¸®(È¤Àº »èÁ¦)
-                                         // this.block_creator.createBlock(block_position);
-                                         // ¾Æ·¡ ºÎºĞÀ» Ãß°¡.
-        this.level_control.PrepareNextBlockPatternForMapCreator();
-        LevelControl.CreationInfo current = this.level_control.current_block; // ÁØºñµÈ Á¤º¸ °¡Á®¿À±â
+        block_position.x += BLOCK_WIDTH;
+
         block_position.y = current.height * BLOCK_HEIGHT;
 
         if (current.block_type == Block.TYPE.FLOOR)
         {
-            this.block_creator.createBlock(block_position); // ¹Ù´ÚÀÌ¸é »ı¼º
+            if (this.block_creator != null) this.block_creator.createBlock(block_position);
+            else Debug.LogError("create_floor_block: BlockCreator ì°¸ì¡°ê°€ ì—†ìŠµë‹ˆë‹¤!");
         }
+
 
 
         this.last_block.position = block_position;
@@ -106,14 +189,35 @@ public class MapCreator : MonoBehaviour
 
     public bool isDelete(GameObject block_object)
     {
-        bool ret = false; // ¹İÈ¯°ª
+        bool ret = false; // ë°˜í™˜ê°’
         float left_limit = this.player.transform.position.x
-        - BLOCK_WIDTH * ((float)BLOCK_NUM_IN_SCREEN / 2.0f); // »èÁ¦ ¹®ÅÎ °ª
-                                                             // ºí·ÏÀÇ À§Ä¡°¡ ¹®ÅÎ °ªº¸´Ù ÀÛÀ¸¸é(¿ŞÂÊ),
+        - BLOCK_WIDTH * ((float)BLOCK_NUM_IN_SCREEN / 2.0f); // ì‚­ì œ ë¬¸í„± ê°’
+                                                             // ë¸”ë¡ì˜ ìœ„ì¹˜ê°€ ë¬¸í„± ê°’ë³´ë‹¤ ì‘ìœ¼ë©´(ì™¼ìª½),
         if (block_object.transform.position.x < left_limit)
         {
-            ret = true; // ¹İÈ¯°ªÀ» true(»ç¶óÁ®µµ ÁÁ´Ù)·Î
+            ret = true; // ë°˜í™˜ê°’ì„ true(ì‚¬ë¼ì ¸ë„ ì¢‹ë‹¤)ë¡œ
         }
-        return (ret); // ÆÇÁ¤ °á°ú¸¦ µ¹·ÁÁÜ
+        return (ret); // íŒì • ê²°ê³¼ë¥¼ ëŒë ¤ì¤Œ
     }
+
+    public void InitializeForNewStage()
+    {
+        Debug.Log("MapCreator: ìƒˆ ìŠ¤í…Œì´ì§€ë¥¼ ìœ„í•´ ì´ˆê¸°í™” ì¤‘...");
+        this.last_block.is_created = false;
+        this.last_block.position = Vector3.zero; // ë˜ëŠ” í”Œë ˆì´ì–´ ì‹œì‘ ìœ„ì¹˜ ê¸°ì¤€ìœ¼ë¡œ ì´ˆê¸°í™”
+
+        // LevelControlì´ ì´ë¯¸ ìƒˆ ìŠ¤í…Œì´ì§€ ì„¤ì •ìœ¼ë¡œ ì—…ë°ì´íŠ¸ë˜ì—ˆë‹¤ê³  ê°€ì •í•˜ê³ ,
+        // LevelControlì˜ ë¸”ë¡ ìƒì„± ìƒíƒœë¥¼ ì´ˆê¸°í™”í•©ë‹ˆë‹¤.
+        if (level_control != null)
+        {
+            level_control.InitializeBlockGeneration();
+        }
+        else
+        {
+            Debug.LogError("MapCreator: LevelControl ì°¸ì¡°ê°€ ì—†ìŠµë‹ˆë‹¤. InitializeBlockGeneration í˜¸ì¶œ ë¶ˆê°€.");
+        }
+        // TODO: ì´ì „ ìŠ¤í…Œì´ì§€ì—ì„œ ìƒì„±ëœ ë©€ë¦¬ ìˆëŠ” ë¸”ë¡ë“¤ì„ ì œê±°í•˜ëŠ” ë¡œì§ì´ í•„ìš”í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.
+        // ë˜ëŠ” ë§µì˜ ì‹œê°ì  í…Œë§ˆë¥¼ ë³€ê²½í•˜ëŠ” ë¡œì§ ë“±
+    }
+
 }

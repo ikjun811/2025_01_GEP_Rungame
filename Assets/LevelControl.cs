@@ -1,4 +1,4 @@
-using System.Collections;
+ï»¿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
@@ -21,16 +21,16 @@ public class StageData
 
 public class LevelControl : MonoBehaviour
 {
-    public TextAsset levelDataFile; // ±âÁ¸ level_data_text ´ë½Å ÀÌ ÀÌ¸§ »ç¿ë ¶Ç´Â À¯Áö
+    public TextAsset levelDataFile; // ê¸°ì¡´ level_data_text ëŒ€ì‹  ì´ ì´ë¦„ ì‚¬ìš© ë˜ëŠ” ìœ ì§€
     public List<StageData> allStageData = new List<StageData>();
-    public StageData currentStageSettings; // ÇöÀç ½ºÅ×ÀÌÁöÀÇ ¼³Á¤°ª
-    public int currentStageID = 0;
+    public StageData currentStageSettings; // í˜„ì¬ ìŠ¤í…Œì´ì§€ì˜ ì„¤ì •ê°’
+    public int currentStageID = -1;
 
     //private List<LevelData> level_datas = new List<LevelData>();
     public int HEIGHT_MAX = 20;
     public int HEIGHT_MIN = -4;
 
-    public BossControl bossInstance; // ¾À¿¡ ÀÖ´Â º¸½º ¿ÀºêÁ§Æ®¸¦ Inspector¿¡¼­ ¿¬°á
+    public BossControl bossInstance; // ì”¬ì— ìˆëŠ” ë³´ìŠ¤ ì˜¤ë¸Œì íŠ¸ë¥¼ Inspectorì—ì„œ ì—°ê²°
 
 
     [System.Serializable]
@@ -42,24 +42,22 @@ public class LevelControl : MonoBehaviour
 
     public struct CreationInfo
     {
-        public Block.TYPE block_type; // ºí·ÏÀÇ Á¾·ù
-        public int max_count; // ºí·ÏÀÇ ÃÖ´ë °³¼ö
-        public int height; // ºí·ÏÀ» ¹èÄ¡ÇÒ ³ôÀÌ
-        public int current_count; // ÀÛ¼ºÇÑ ºí·ÏÀÇ °³¼ö
+        public Block.TYPE block_type; // ë¸”ë¡ì˜ ì¢…ë¥˜
+        public int max_count; // ë¸”ë¡ì˜ ìµœëŒ€ ê°œìˆ˜
+        public int height; // ë¸”ë¡ì„ ë°°ì¹˜í•  ë†’ì´
+        public int current_count; // ì‘ì„±í•œ ë¸”ë¡ì˜ ê°œìˆ˜
     };
-    //public CreationInfo previous_block; // ÀÌÀü¿¡ ¾î¶² ºí·ÏÀ» ¸¸µé¾ú´Â°¡
-    public CreationInfo current_block; // Áö±İ ¾î¶² ºí·ÏÀ» ¸¸µé¾î¾ß ÇÏ´Â°¡
-    //public CreationInfo next_block; // ´ÙÀ½¿¡ ¾î¶² ºí·ÏÀ» ¸¸µé¾î¾ß ÇÏ´Â°¡
+    //public CreationInfo previous_block; // ì´ì „ì— ì–´ë–¤ ë¸”ë¡ì„ ë§Œë“¤ì—ˆëŠ”ê°€
+    public CreationInfo current_block; // ì§€ê¸ˆ ì–´ë–¤ ë¸”ë¡ì„ ë§Œë“¤ì–´ì•¼ í•˜ëŠ”ê°€
+    //public CreationInfo next_block; // ë‹¤ìŒì— ì–´ë–¤ ë¸”ë¡ì„ ë§Œë“¤ì–´ì•¼ í•˜ëŠ”ê°€
 
-    public int block_count = 0; // »ı¼ºÇÑ ºí·ÏÀÇ ÃÑ ¼ö
+    public int block_count = 0; // ìƒì„±í•œ ë¸”ë¡ì˜ ì´ ìˆ˜
 
 
 
-    void Awake() // ¶Ç´Â Start()
+    void Awake() // ë˜ëŠ” Start()
     {
-        LoadAllStageData(); // levelDataFileÀ» ÆÄ½ÌÇÏ¿© allStageData ¸®½ºÆ®¸¦ Ã¤¿ò
-        ApplyStageSettings(currentStageID);
-        InitializeBlockGeneration(); // ºí·Ï »ı¼º °ü·Ã ÃÊ±âÈ­
+        LoadAllStageData();
     }
 
     void LoadAllStageData()
@@ -67,7 +65,7 @@ public class LevelControl : MonoBehaviour
         allStageData.Clear();
         if (levelDataFile == null)
         {
-            Debug.LogError("LevelDataFileÀÌ ÇÒ´çµÇÁö ¾Ê¾Ò½À´Ï´Ù!");
+            Debug.LogError("LevelDataFileì´ í• ë‹¹ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤!");
             return;
         }
 
@@ -76,10 +74,10 @@ public class LevelControl : MonoBehaviour
         {
             if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#")) continue;
 
-            string[] values = line.Split(' '); // ÅÇÀ¸·Î ±¸ºĞÇß¾ú´Ù¸é \t, °ø¹éÀÌ¸é ' '
-            if (values.Length < 10) // STAGE_IDºÎÅÍ BOSS_FIRE_INTERVAL±îÁö ÃÖ¼Ò 10°³ °ª
+            string[] values = line.Split(' '); // íƒ­ìœ¼ë¡œ êµ¬ë¶„í–ˆì—ˆë‹¤ë©´ \t, ê³µë°±ì´ë©´ ' '
+            if (values.Length < 10) // STAGE_IDë¶€í„° BOSS_FIRE_INTERVALê¹Œì§€ ìµœì†Œ 10ê°œ ê°’
             {
-                Debug.LogWarning($"Àß¸øµÈ µ¥ÀÌÅÍ ¶óÀÎ: {line}");
+                Debug.LogWarning($"ì˜ëª»ëœ ë°ì´í„° ë¼ì¸: {line}");
                 continue;
             }
             try
@@ -99,279 +97,118 @@ public class LevelControl : MonoBehaviour
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"µ¥ÀÌÅÍ ÆÄ½Ì ¿À·ù: {line} - {e.Message}");
+                Debug.LogError($"ë°ì´í„° íŒŒì‹± ì˜¤ë¥˜: {line} - {e.Message}");
             }
         }
     }
 
-    public void ApplyStageSettings(int stageID)
+    public void ApplySettingsForStage(int logicalStageID)
     {
-        currentStageSettings = allStageData.Find(s => s.stageID == stageID);
+        this.currentStageID = logicalStageID;
+        Debug.Log($"LevelControl: ìŠ¤í…Œì´ì§€ ID {currentStageID}ì— ëŒ€í•œ ì„¤ì • ì ìš© ì‹œì‘.");
+
+        currentStageSettings = allStageData.Find(s => s.stageID == this.currentStageID);
+
         if (currentStageSettings == null)
         {
-            Debug.LogError($"½ºÅ×ÀÌÁö ID {stageID} ¼³Á¤À» Ã£À» ¼ö ¾ø½À´Ï´Ù! ±âº»°ªÀ» »ç¿ëÇÏ°Å³ª Ã¹ ¹øÂ° ½ºÅ×ÀÌÁö¸¦ »ç¿ëÇÕ´Ï´Ù.");
-            if (allStageData.Count > 0) currentStageSettings = allStageData[0]; // ÀÓ½Ã: Ã¹ ¹øÂ° ½ºÅ×ÀÌÁö µ¥ÀÌÅÍ »ç¿ë
-            else currentStageSettings = new StageData(); // ÀÓ½Ã ±âº»°ª
+            Debug.LogError($"ìŠ¤í…Œì´ì§€ ID {this.currentStageID}ì— í•´ë‹¹í•˜ëŠ” ì„¤ì •ì„ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤! level_data.txtì™€ GameRootì˜ ìŠ¤í…Œì´ì§€ ID ê³„ì‚° ë¡œì§ì„ í™•ì¸í•´ì£¼ì„¸ìš”.");
+            if (allStageData.Count > 0) currentStageSettings = allStageData[0];
+            else currentStageSettings = new StageData();
         }
-        // º¸½º ½ºÅÈ ¾÷µ¥ÀÌÆ®
+
+        // Debug.Log($"ì ìš©ëœ ìŠ¤í…Œì´ì§€ ì„¤ì •: PlayerSpeed={currentStageSettings.playerSpeed}, BossHP={currentStageSettings.bossMaxHp}, FloorMin={currentStageSettings.floorCount.min}"); // ìƒì„¸ ë¡œê·¸
+
         if (bossInstance != null)
         {
-            if (currentStageSettings.bossMaxHp > 0) // º¸½º°¡ µîÀåÇÏ´Â ½ºÅ×ÀÌÁö¶ó¸é
+            if (currentStageSettings.bossMaxHp > 0)
             {
                 bossInstance.gameObject.SetActive(true);
                 bossInstance.UpdateBossStats(currentStageSettings.bossMaxHp, currentStageSettings.bossFireInterval);
             }
-            else // º¸½º°¡ µîÀåÇÏÁö ¾Ê´Â ½ºÅ×ÀÌÁö¶ó¸é ºñÈ°¼ºÈ­
+            else
             {
                 bossInstance.gameObject.SetActive(false);
             }
         }
 
-        // PlayerControl, MapCreator, BossControl¿¡ º¯°æµÈ ¼³Á¤ ¾Ë¸®±â ¶Ç´Â ÀÌµéÀÌ Á÷Á¢ °¡Á®°¡µµ·Ï ÇÔ
-        // ¿¹: FindObjectOfType<PlayerControl>()?.SetSpeed(currentStageSettings.playerSpeed);
-        //    FindObjectOfType<BossControl>()?.UpdateBossStats(currentStageSettings.bossMaxHp, currentStageSettings.bossFireInterval);
-        //    FindObjectOfType<MapCreator>()?.UpdateMapRules(currentStageSettings.floorCount, ...);
-        // ¶Ç´Â °¢ ½ºÅ©¸³Æ®°¡ Start()³ª ÇÊ¿ä½Ã LevelControl.currentStageSettings¸¦ Á÷Á¢ ÂüÁ¶
+        InitializeBlockGeneration();
     }
 
     public float getPlayerSpeed()
     {
-        return (currentStageSettings != null) ? currentStageSettings.playerSpeed : 10.0f; // ±âº» ¼Óµµ
+        return (currentStageSettings != null) ? currentStageSettings.playerSpeed : 10.0f; // ê¸°ë³¸ ì†ë„
     }
 
-    void InitializeBlockGeneration()
+    public void InitializeBlockGeneration()
     {
-        this.block_count = 0;
-        // current_block ÃÊ±âÈ­ (¿¹: Ã¹ ºí·ÏÀº Ç×»ó ¹Ù´Ú)
-        current_block.block_type = Block.TYPE.FLOOR;
-        current_block.max_count = (currentStageSettings != null) ? Random.Range(currentStageSettings.floorCount.min, currentStageSettings.floorCount.max + 1) : 10; // Ã¹ ¹Ù´Ú ±æÀÌ
-        current_block.height = 0; // ½ÃÀÛ ³ôÀÌ
-        current_block.current_count = 0; // ¾ÆÁ÷ ÇÏ³ªµµ ¾È ¸¸µê (PrepareNextBlockPatternForMapCreator¿¡¼­ Áõ°¡½ÃÅ³ °ÍÀÌ¹Ç·Î)
-    }
-
-
-    public void PrepareNextBlockPatternForMapCreator() // MapCreator°¡ ºí·Ï ¹­À½ÀÌ ³¡³¯ ¶§ È£Ãâ
-    {
-        if (currentStageSettings == null) return;
-
-        // ÇöÀç current_block ¹­À½(¿¹: FLOOR 5°³)ÀÌ ³¡³µ´ÂÁö ÆÇ´Ü (MapCreator°¡ ¾Ë·ÁÁÖ°Å³ª, ¿©±â¼­ Ä«¿îÆ®)
-        // ³¡³µ´Ù¸é, ´ÙÀ½ ¹­À½(HOLE ¶Ç´Â FLOOR)À» currentStageSettingsÀÇ ±ÔÄ¢¿¡ µû¶ó °áÁ¤
-        // ¿¹: ÀÌÀüÀÌ FLOOR¿´´Ù¸é ´ÙÀ½Àº HOLE, °³¼ö´Â holeCount.min/max »çÀÌ ·£´ı
-        //     ÀÌÀüÀÌ HOLEÀÌ¾ú´Ù¸é ´ÙÀ½Àº FLOOR, °³¼ö´Â floorCount.min/max »çÀÌ ·£´ı, ³ôÀÌµµ heightDiff ¹üÀ§ ³» º¯°æ
-
-        // ¾Æ·¡´Â ±âÁ¸ update_level°ú À¯»çÇÑ ·ÎÁ÷À» ÇöÀç ½ºÅ×ÀÌÁö µ¥ÀÌÅÍ ±â¹İÀ¸·Î ¼öÁ¤ÇÏ´Â ¿¹½Ã
-        // (ÀÌ ·ÎÁ÷Àº MapCreator°¡ current_blockÀ» ¾î¶»°Ô ¼ÒºñÇÏ´ÂÁö¿¡ µû¶ó ´Ş¶óÁü)
-        if (current_block.current_count >= current_block.max_count || block_count == 0) // ÇöÀç ºí·Ï ¹­À½ ¿Ï·á ¶Ç´Â Ã¹ ½ÃÀÛ
+        this.block_count = 0; // ì´ ë¸”ë¡ ì¹´ìš´íŠ¸ ì´ˆê¸°í™”
+        if (currentStageSettings != null)
         {
-            // previous_block = current_block; // ÇÊ¿äÇÏ´Ù¸é
-            // current_block = next_block;    // ÀÌ·±½ÄÀ¸·Î 3´Ü°è¸¦ ¾²°Å³ª, ¹Ù·Î ´ÙÀ½°Í °è»ê
+            // ì²« ë²ˆì§¸ ë¸”ë¡ ë¬¶ìŒì€ í•­ìƒ FLOORë¡œ ì„¤ì •
+            current_block.block_type = Block.TYPE.FLOOR;
+            current_block.max_count = Random.Range(Mathf.Max(1, currentStageSettings.floorCount.min), currentStageSettings.floorCount.max + 1);
+            current_block.height = 0; // ì‹œì‘ ë†’ì´
+            current_block.current_count = 0; 
+            Debug.Log($"LevelControl: ë¸”ë¡ ìƒì„± ì´ˆê¸°í™” ì™„ë£Œ. ì²« ë¬¶ìŒ: {current_block.block_type}, ê°œìˆ˜: {current_block.max_count}");
+        }
+        else
+        {
+            Debug.LogError("InitializeBlockGeneration: currentStageSettingsê°€ nullì…ë‹ˆë‹¤.");
+            // ê¸°ë³¸ê°’ìœ¼ë¡œë¼ë„ current_blockì„ ì„¤ì •í•´ì£¼ëŠ” ê²ƒì´ ì•ˆì „í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.
+            current_block.block_type = Block.TYPE.FLOOR;
+            current_block.max_count = 10;
+            current_block.height = 0;
+            current_block.current_count = 0;
+        }
+    }
 
+
+    public void PrepareNextBlockPatternForMapCreator() // MapCreatorê°€ ë¸”ë¡ ë¬¶ìŒì´ ëë‚  ë•Œ í˜¸ì¶œ
+    {
+        if (currentStageSettings == null)
+        {
+            Debug.LogError("PrepareNextBlockPatternForMapCreator: currentStageSettingsê°€ nullì…ë‹ˆë‹¤!");
+            return; // currentStageSettingsê°€ ì—†ìœ¼ë©´ íŒ¨í„´ì„ ê²°ì •í•  ìˆ˜ ì—†ìŒ
+        }
+
+        // í˜„ì¬ ë¸”ë¡ ë¬¶ìŒì˜ ìƒì„±ì´ ì™„ë£Œë˜ì—ˆì„ ë•Œë§Œ ë‹¤ìŒ íŒ¨í„´ìœ¼ë¡œ ë³€ê²½
+        // block_count > 0 ì¡°ê±´ì„ ì¶”ê°€í•˜ì—¬ ê²Œì„ ì‹œì‘ í›„ ì²« ë²ˆì§¸ í˜¸ì¶œì—ì„œëŠ” íŒ¨í„´ ë³€ê²½ ì‹œë„ë¥¼ ë§‰ê³ ,
+        // InitializeBlockGenerationì—ì„œ ì„¤ì •í•œ ì²« ë²ˆì§¸ ë¬¶ìŒì„ ì‚¬ìš©í•˜ë„ë¡ í•©ë‹ˆë‹¤.
+        if (current_block.current_count >= current_block.max_count && block_count > 0)
+        {
+            // Debug.Log($"===== ìƒˆ ë¸”ë¡ íŒ¨í„´ ê²°ì • ì‹œì‘ (ì´ì „ íƒ€ì…: {current_block.block_type}, ì´ì „ ì¹´ìš´íŠ¸: {current_block.current_count}/{current_block.max_count}) =====");
+            // ... (ê¸°ì¡´ì˜ nextType, nextMaxCount, nextHeight ê²°ì • ë¡œì§ì€ ë™ì¼í•˜ê²Œ ì‚¬ìš©) ...
             Block.TYPE nextType;
             int nextMaxCount;
             int nextHeight = current_block.height;
 
-
-            if (current_block.block_type == Block.TYPE.FLOOR || block_count == 0)
+            if (current_block.block_type == Block.TYPE.FLOOR) // ì´ì „ì´ ë°”ë‹¥ì´ë©´ ë‹¤ìŒì€ êµ¬ë©
             {
                 nextType = Block.TYPE.HOLE;
                 nextMaxCount = Random.Range(currentStageSettings.holeCount.min, currentStageSettings.holeCount.max + 1);
-                Debug.Log($"´ÙÀ½ ÆĞÅÏ: HOLE, °³¼ö(min-max): {currentStageSettings.holeCount.min}-{currentStageSettings.holeCount.max}, ¼±ÅÃµÈ °³¼ö: {nextMaxCount}");
+                // Debug.Log($"ë‹¤ìŒ íŒ¨í„´: HOLE, ì„ íƒëœ ê°œìˆ˜: {nextMaxCount}");
             }
-            else // ÀÌÀüÀÌ ±¸¸ÛÀÌ¸é ¹Ù´Ú
+            else // ì´ì „ì´ êµ¬ë©ì´ë©´ ë‹¤ìŒì€ ë°”ë‹¥
             {
                 nextType = Block.TYPE.FLOOR;
                 nextMaxCount = Random.Range(currentStageSettings.floorCount.min, currentStageSettings.floorCount.max + 1);
+                // (ë†’ì´ ë³€ê²½ ë¡œì§)
                 int height_min = current_block.height + currentStageSettings.heightDiff.min;
                 int height_max = current_block.height + currentStageSettings.heightDiff.max;
                 height_min = Mathf.Clamp(height_min, HEIGHT_MIN, HEIGHT_MAX);
                 height_max = Mathf.Clamp(height_max, HEIGHT_MIN, HEIGHT_MAX);
                 nextHeight = Random.Range(height_min, height_max + 1);
-                Debug.Log($"´ÙÀ½ ÆĞÅÏ: FLOOR, °³¼ö(min-max): {currentStageSettings.floorCount.min}-{currentStageSettings.floorCount.max}, ¼±ÅÃµÈ °³¼ö: {nextMaxCount}, ³ôÀÌ: {nextHeight}");
+                // Debug.Log($"ë‹¤ìŒ íŒ¨í„´: FLOOR, ì„ íƒëœ ê°œìˆ˜: {nextMaxCount}, ë†’ì´: {nextHeight}");
             }
 
             current_block.block_type = nextType;
             current_block.max_count = nextMaxCount;
             current_block.height = nextHeight;
-            current_block.current_count = 0;
+            current_block.current_count = 0; // ìƒˆ íŒ¨í„´ ì‹œì‘, ì¹´ìš´íŠ¸ ë¦¬ì…‹
         }
-        current_block.current_count++;
-        block_count++;
+        current_block.current_count++; // ì´ë²ˆì— MapCreatorê°€ ì‚¬ìš©í•  ë¸”ë¡ì„ ìœ„í•´ ì¹´ìš´íŠ¸ ì¦ê°€
+        block_count++; // ì „ì²´ ë¸”ë¡ ì¹´ìš´íŠ¸ ì¦ê°€
+
+
     }
-
-
-
-
-
-
-
-
-    /*
-    // ÇÁ·ÎÇÊ ³ëÆ®¿¡ ½ÇÁ¦·Î ±â·Ï
-    private void clear_next_block(ref CreationInfo block)
-    {
-        // Àü´Ş¹ŞÀº ºí·Ï(block)À» ÃÊ±âÈ­
-        block.block_type = Block.TYPE.FLOOR;
-        block.max_count = 15;
-        block.height = 0;
-        block.current_count = 0;
-    }
-    // ÇÁ·ÎÇÊ ³ëÆ®¸¦ ÃÊ±âÈ­
-    public void initialize()
-    {
-        this.block_count = 0; // ºí·ÏÀÇ ÃÑ ¼ö¸¦ ÃÊ±âÈ­
-
-        // clear_next_block()¿¡ ³Ñ°Ü¼­ ÃÊ±âÈ­
-
-        this.clear_next_block(ref this.current_block);
-
-    }*/
-
-    /*
-    private void update_level(ref CreationInfo current, CreationInfo previous)
-    {
-        switch (previous.block_type)
-        {
-            case Block.TYPE.FLOOR: // ÀÌ¹ø ºí·ÏÀÌ ¹Ù´ÚÀÏ °æ¿ì
-                current.block_type = Block.TYPE.HOLE; // ´ÙÀ½ ¹øÀº ±¸¸ÛÀ» ¸¸µë
-                current.max_count = 5; // ±¸¸ÛÀº 5°³ ¸¸µë
-                current.height = previous.height; // ³ôÀÌ¸¦ ÀÌÀü°ú °°°Ô
-                break;
-            case Block.TYPE.HOLE: // ÀÌ¹ø ºí·ÏÀÌ ±¸¸ÛÀÏ °æ¿ì
-                current.block_type = Block.TYPE.FLOOR; // ´ÙÀ½Àº ¹Ù´Ú ¸¸µë
-                current.max_count = 10; // ¹Ù´ÚÀº 10°³ ¸¸µë
-                break;
-        }
-    }*/
-
-
-    /*
-    public void update(float passage_time)
-    { // *Update()°¡ ¾Æ´Ô, create_floor_block() ¸Ş¼­µå¿¡¼­ È£Ãâ
-        this.current_block.current_count++; // ÀÌ¹ø¿¡ ¸¸µç ºí·Ï °³¼ö¸¦ Áõ°¡
-                                            // ÀÌ¹ø¿¡ ¸¸µç ºí·Ï °³¼ö°¡ max_count ÀÌ»óÀÌ¸é,
-        if (this.current_block.current_count >= this.current_block.max_count)
-        {
-            this.previous_block = this.current_block;
-            this.current_block = this.next_block;
-            this.clear_next_block(ref this.next_block); // ´ÙÀ½¿¡ ¸¸µé ºí·ÏÀÇ ³»¿ëÀ» ÃÊ±âÈ­
-            //this.update_level(ref this.next_block, this.current_block); // ´ÙÀ½¿¡ ¸¸µé ºí·ÏÀ» ¼³Á¤
-            this.update_level(ref this.next_block, this.current_block, passage_time);
-        }
-        this.block_count++; // ºí·ÏÀÇ ÃÑ ¼ö¸¦ Áõ°¡
-    }*/
-
-    /*
-    public void loadLevelData(TextAsset level_data_text)
-    {
-        string level_texts = level_data_text.text; // ÅØ½ºÆ® µ¥ÀÌÅÍ¸¦ ¹®ÀÚ¿­·Î °¡Á®¿È
-        string[] lines = level_texts.Split("\n"); // °³Çà ÄÚµå £§\£§¸¶´Ù ºĞÇÒÇØ¼­ ¹®ÀÚ¿­ ¹è¿­¿¡ ³ÖÀ½
-                                                  // lines ³»ÀÇ °¢ Çà¿¡ ´ëÇØ¼­ Â÷·Ê·Î Ã³¸®ÇØ °¡´Â ·çÇÁ
-        foreach (var line in lines)
-        {
-            if (line == "")
-            { // ÇàÀÌ ºó ÁÙÀÌ¸é,
-                continue; // ¾Æ·¡ Ã³¸®´Â ÇÏÁö ¾Ê°í ¹İº¹¹®ÀÇ Ã³À½À¸·Î Á¡ÇÁ
-            };
-            Debug.Log(line); // ÇàÀÇ ³»¿ëÀ» µğ¹ö±× Ãâ·Â
-            string[] words = line.Split(); // Çà ³»ÀÇ ¿öµå¸¦ ¹è¿­¿¡ ÀúÀå
-            int n = 0;
-            // LevelDataÇü º¯¼ö¸¦ »ı¼º
-            // ÇöÀç Ã³¸®ÇÏ´Â ÇàÀÇ µ¥ÀÌÅÍ¸¦ ³ÖÀ½
-            LevelData level_data = new LevelData();
-            // words³»ÀÇ °¢ ¿öµå¿¡ ´ëÇØ¼­ ¼ø¼­´ë·Î Ã³¸®ÇØ °¡´Â ·çÇÁ
-            foreach (var word in words)
-            {
-                if(word.StartsWith("#")) { // ¿öµåÀÇ ½ÃÀÛ¹®ÀÚ°¡ #ÀÌ¸é
-                    break;
-                } // ·çÇÁ Å»Ãâ
-                if (word == "")
-                { // ¿öµå°¡ ÅÖ ºñ¾úÀ¸¸é
-                    continue;
-                } // ·çÇÁÀÇ ½ÃÀÛÀ¸·Î Á¡ÇÁ
-                  // n °ªÀ» 0, 1, 2,...7·Î º¯È­½ÃÄÑ °¨À¸·Î½á 8Ç×¸ñÀ» Ã³¸®
-                  // °¢ ¿öµå¸¦ ÇÃ·Ô°ªÀ¸·Î º¯È¯ÇÏ°í level_data¿¡ ÀúÀå
-                switch (n)
-                {
-                    case 0: level_data.end_time = float.Parse(word); break;
-                    case 1: level_data.player_speed = float.Parse(word); break;
-                    case 2: level_data.floor_count.min = int.Parse(word); break;
-                    case 3: level_data.floor_count.max = int.Parse(word); break;
-                    case 4: level_data.hole_count.min = int.Parse(word); break;
-                    case 5: level_data.hole_count.max = int.Parse(word); break;
-                    case 6: level_data.height_diff.min = int.Parse(word); break;
-                    case 7: level_data.height_diff.max = int.Parse(word); break;
-                }
-                n++;
-            }
-            if (n >= 8)
-            { // 8Ç×¸ñ(ÀÌ»ó)ÀÌ Á¦´ë·Î Ã³¸®µÇ¾ú´Ù¸é,
-                this.level_datas.Add(level_data); // List ±¸Á¶ÀÇ level_datas¿¡ level_data¸¦ Ãß°¡
-            }
-            else
-            { // ±×·¸Áö ¾Ê´Ù¸é(¿À·ùÀÇ °¡´É¼ºÀÌ ÀÖÀ½),
-                if (n == 0)
-                { // 1¿öµåµµ Ã³¸®ÇÏÁö ¾ÊÀº °æ¿ì´Â ÁÖ¼®ÀÌ¹Ç·Î
-                  // ¾Æ¹«°Íµµ ÇÏÁö ¾ÊÀ½
-                }
-                else
-                { // ±× ÀÌ¿ÜÀÌ¸é ¿À·ù·Î °£ÁÖ
-                  // µ¥ÀÌÅÍ °³¼ö°¡ ¸ÂÁö ¾Ê´Ù´Â °ÍÀ» º¸¿©ÁÖ´Â ¿À·ù ¸Ş½ÃÁö¸¦ Ç¥½Ã
-                    Debug.LogError("[LevelData] Out of parameter.\n");
-                }
-            }
-        }
-        if (this.level_datas.Count == 0)
-        { // level_datas¿¡ µ¥ÀÌÅÍ°¡ ÇÏ³ªµµ ¾øÀ¸¸é
-            Debug.LogError("[LevelData] Has no data.\n"); // ¿À·ù ¸Ş½ÃÁö¸¦ Ç¥½Ã
-            this.level_datas.Add(new LevelData()); // level_datas¿¡ ±âº» LevelData¸¦ ÇÏ³ª Ãß°¡
-        }
-    }*/
-
-    /*
-    private void update_level(ref CreationInfo current, CreationInfo previous, float passage_time)
-    { // »õ ÀÎ¼ö passage_timeÀ¸·Î ÇÃ·¹ÀÌ °æ°ú ½Ã°£À» ¹ŞÀ½
-      // ·¹º§ 1~·¹º§ 5¸¦ ¹İº¹
-        float local_time = Mathf.Repeat(passage_time, this.level_datas[this.level_datas.Count - 1].end_time); // Mathf.Repeat: 0~max »çÀÌÀÇ °ªÀ» ¹İÈ¯
-                                                                                                              // ÇöÀç ·¹º§À» ±¸ÇÔ
-        int i;
-        for (i = 0; i < this.level_datas.Count - 1; i++)
-        {
-            if (local_time <= this.level_datas[i].end_time)
-            {
-                break;
-            }
-        }
-        this.level = i;
-        current.block_type = Block.TYPE.FLOOR;
-        current.max_count = 1;
-        if (this.block_count >= 10)
-        {
-            // ÇöÀç ·¹º§¿ë ·¹º§ µ¥ÀÌÅÍ¸¦ °¡Á®¿È
-            LevelData level_data;
-            level_data = this.level_datas[this.level];
-            switch (previous.block_type)
-            {
-                case Block.TYPE.FLOOR: // ÀÌÀü ºí·ÏÀÌ ¹Ù´ÚÀÎ °æ¿ì,
-                    current.block_type = Block.TYPE.HOLE; // ÀÌ¹ø¿£ ±¸¸ÛÀ» ¸¸µë
-                                                          // ±¸¸Û Å©±âÀÇ ÃÖ¼Ú°ª~ÃÖ´ñ°ª »çÀÌÀÇ ÀÓÀÇÀÇ °ª
-                    current.max_count = Random.Range(level_data.hole_count.min, level_data.hole_count.max);
-                    current.height = previous.height; // ³ôÀÌ¸¦ ÀÌÀü°ú °°ÀÌ
-                    break;
-                case Block.TYPE.HOLE: // ÀÌÀü ºí·ÏÀÌ ±¸¸ÛÀÎ °æ¿ì,
-                    current.block_type = Block.TYPE.FLOOR; // ÀÌ¹ø¿£ ¹Ù´ÚÀ» ¸¸µë
-                                                           // ¹Ù´Ú ±æÀÌÀÇ ÃÖ¼Ú°ª~ÃÖ´ñ°ª »çÀÌÀÇ ÀÓÀÇÀÇ °ª
-                    current.max_count = Random.Range(level_data.floor_count.min, level_data.floor_count.max);
-                    // ¹Ù´Ú ³ôÀÌÀÇ ÃÖ¼Ú°ª°ú ÃÖ´ñ°ªÀ» ±¸ÇÔ
-                    int height_min = previous.height + level_data.height_diff.min;
-                    int height_max = previous.height + level_data.height_diff.max;
-                    height_min = Mathf.Clamp(height_min, HEIGHT_MIN, HEIGHT_MAX); // ÃÖ¼Ò¿Í ÃÖ´ë°ª »çÀÌ¸¦ °­Á¦·Î ÁöÁ¤
-                    height_max = Mathf.Clamp(height_max, HEIGHT_MIN, HEIGHT_MAX); // Mathf.clamp: min~max »çÀÌÀÇ °ªÀ» ¹İÈ¯
-                                                                                  // ¹Ù´Ú ³ôÀÌÀÇ ÃÖ¼Ú°ª~ÃÖ´ñ°ª »çÀÌÀÇ ÀÓÀÇÀÇ °ª
-                    current.height = Random.Range(height_min, height_max);
-                    break;
-            }
-        }
-    }*/
-
-
 }

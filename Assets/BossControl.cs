@@ -160,11 +160,10 @@ public class BossControl : MonoBehaviour
     {
         Debug.Log("보스 처치!");
         // (사망 이펙트, 아이템 드랍, 스테이지 클리어 등의 로직)
-        if (bossHealthSlider != null) // ⭐ 보스 사망 시 체력바 처리 (선택적)
-        {
-            bossHealthSlider.value = 0;
-        }
-        Destroy(gameObject);
+        GameRoot.Instance.NotifyStageCleared();
+        if (bossHealthSlider != null) bossHealthSlider.gameObject.SetActive(false); // 체력바 숨김
+        gameObject.SetActive(false); // 보스 오브젝트 비활성화
+
     }
 
     public void UpdateBossStats(float newMaxHp, float newFireInterval)
@@ -227,6 +226,17 @@ public class BossControl : MonoBehaviour
         {
             // Debug.LogWarning("BossHealthSlider가 할당되지 않았습니다."); // 필요하다면 경고 로그
         }
+    }
+
+    public void ResetState()
+    {
+        currentHp = maxHp; // UpdateBossStats에서 이미 maxHp가 설정된 후 호출된다고 가정
+        fireTimer = currentFireInterval; // 또는 initialFireInterval
+                                         // 필요하다면 초기 위치로 이동하는 로직
+                                         // transform.position = initialPosition; // initialPosition 변수 필요
+        UpdateBossHealthUI(); // UI 갱신
+        gameObject.SetActive(true); // 활성화
+        Debug.Log("보스 상태 리셋됨.");
     }
 
 }
