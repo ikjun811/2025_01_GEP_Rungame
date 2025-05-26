@@ -14,6 +14,7 @@ public class GameRoot : MonoBehaviour
     private int _currentLogicalStageID = 0;
     public int totalGameStages = 3;
     public string gameClearSceneName = "ClearMenu";
+    public string gameOverSceneName = "GameOver";
 
     [Header("UI 알림")]
     // Inspector에서 초기 할당 후, 씬 로드 시 다시 찾을 UI 요소들
@@ -119,6 +120,13 @@ public class GameRoot : MonoBehaviour
             // 예를 들어 stageDisplayText는 게임 스테이지용 UI일 수 있습니다.
             if (stageDisplayText != null) stageDisplayText.gameObject.SetActive(false);
         }
+        else if (scene.name == "GameOver") // 게임 오버 씬 
+        {
+            Debug.Log($"GameRoot: 게임 오버 씬 '{scene.name}' 로드됨.");
+            // 게임 오버 씬에서는 GameStage의 UI들을 비활성화
+            if (stageDisplayText != null && stageDisplayText.gameObject != null) stageDisplayText.gameObject.SetActive(false);
+            if (stageClearUIPanel != null && stageClearUIPanel.gameObject != null) stageClearUIPanel.SetActive(false);
+        }
         else
         {
           Debug.Log($"GameRoot: 게임 플레이/클리어 씬이 아닌 '{scene.name}' 로드됨.");
@@ -126,6 +134,15 @@ public class GameRoot : MonoBehaviour
             if (stageClearUIPanel != null && stageClearUIPanel.gameObject != null) stageClearUIPanel.SetActive(false);
         }
     }
+
+    public void NotifyGameOver()
+    {
+        Debug.Log("GameRoot: NotifyGameOver() 호출됨. 게임 오버 씬 로드: " + gameOverSceneName);
+        // 필요하다면 게임 오버 전에 특정 상태 저장 또는 처리
+        // 예: 점수 저장, 플레이 시간 정지 등 (현재 step_timer는 계속 흐름)
+        SceneManager.LoadScene("GameOver");
+    }
+
 
     public void PrepareForNewGameSession()
     {

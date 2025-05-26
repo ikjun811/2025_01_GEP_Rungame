@@ -191,6 +191,7 @@ public class PlayerControl : MonoBehaviour
                 if (this.transform.position.y < NARAKU_HEIGHT)
                 {
                     this.next_step = STEP.MISS; // '실패' 상태
+                    GameRoot.Instance.NotifyGameOver();
                 }
                 break;
         }
@@ -442,7 +443,7 @@ public class PlayerControl : MonoBehaviour
 
     public void TakeDamage(float amount)
     {
-        if (step == STEP.MISS) return; // 이미 죽은 상태면 데미지 안 받음
+        if (this.step == STEP.MISS || this.next_step == STEP.MISS) return; // 이미 죽은 상태면 데미지 안 받음
 
         currentPlayerHp -= amount;
         currentPlayerHp = Mathf.Clamp(currentPlayerHp, 0, maxPlayerHp);
@@ -464,7 +465,21 @@ public class PlayerControl : MonoBehaviour
 
     void Die()
     {
+        if (this.step == STEP.MISS || this.next_step == STEP.MISS)
+        {
+            return;
+        }
+
         this.next_step = STEP.MISS;
+        if (GameRoot.Instance != null)
+        {
+            GameRoot.Instance.NotifyGameOver(); // GameRoot에 게임 오버 알림
+        }
+        else
+        {
+            Debug.LogError("PlayerControl.Die(): GameRoot.Instance를 찾을 수 없습니다. 게임 오버 처리를 할 수 없습니다.");
+        }
+
     }
 
     public void CollectStone()
