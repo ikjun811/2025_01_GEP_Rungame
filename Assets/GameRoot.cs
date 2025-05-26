@@ -31,10 +31,7 @@ public class GameRoot : MonoBehaviour
     public PlayerControl playerControlInstance;
     public BossControl bossInstance;
 
-    [Header("플레이어 생명력")]
-    public int playerMaxLives = 2;
-    private int currentPlayerLives;
-    public string gameOverSceneName = "GameOverMenu";
+
 
 
     void Awake()
@@ -134,9 +131,6 @@ public class GameRoot : MonoBehaviour
     {
         _currentLogicalStageID = 0; // 첫 번째 논리적 스테이지(ID 0)로 리셋
         step_timer = 0.0f;        // 플레이 시간 리셋
-        currentPlayerLives = playerMaxLives; // 새 게임 시작 시 생명력 초기화
-        OnPlayerLivesChanged?.Invoke(currentPlayerLives); // UI 업데이트 알림
-
         Debug.Log("GameRoot: 새 게임 세션을 위해 상태 초기화됨. 논리 스테이지 ID: 0");
     }
 
@@ -311,34 +305,4 @@ public class GameRoot : MonoBehaviour
     }
 
     public int GetCurrentLogicalStageID() { return _currentLogicalStageID; }
-
-
-    // 현재 생명력 반환 메서드
-    public int GetCurrentLives()
-    {
-        return currentPlayerLives;
-    }
-
-    // 생명력 소모 메서드
-    public bool ConsumeLife()
-    {
-        if (currentPlayerLives > 0)
-        {
-            currentPlayerLives--;
-            OnPlayerLivesChanged?.Invoke(currentPlayerLives); // ⭐ UI 업데이트 알림
-            Debug.Log($"GameRoot: 생명력 1 소모. 남은 생명력: {currentPlayerLives}");
-            return true; // 생명력 소모 성공
-        }
-        Debug.Log("GameRoot: 소모할 생명력 없음.");
-        return false; // 소모할 생명력 없음
-    }
-
-    // 게임 오버 처리 메서드
-    public void TriggerGameOver()
-    {
-        Debug.Log("GameRoot: 모든 생명력 소모. 게임 오버!");
-        // TODO: 필요하다면 여기에 게임 오버 관련 추가 로직 (점수 저장 등)
-        SceneManager.LoadScene(gameOverSceneName); // ⭐ 게임 오버 씬 로드
-    }
-
 }
