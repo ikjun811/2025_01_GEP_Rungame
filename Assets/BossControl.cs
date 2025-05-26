@@ -190,13 +190,13 @@ public class BossControl : MonoBehaviour
 
     public void UpdateBossStats(float newMaxHp, float newFireInterval)
     {
+        Debug.Log($"[확인필요_LOG] BossControl.UpdateBossStats: 호출됨! 전달받은 newMaxHp = {newMaxHp}, newFireInterval = {newFireInterval}. (호출 전 this.maxHp = {this.maxHp}, this.currentFireInterval = {this.currentFireInterval})");
         maxHp = newMaxHp;
         currentHp = maxHp;
-        currentFireInterval = newFireInterval;
-        fireTimer = currentFireInterval;
-
+        this.currentFireInterval = newFireInterval;
+        fireTimer = this.currentFireInterval;
         UpdateBossHealthUI();
-        Debug.Log($"보스 스탯 업데이트됨 - HP: {maxHp}, 공격 주기: {currentFireInterval}초");
+        Debug.Log($"[확인필요_LOG] BossControl.UpdateBossStats: 업데이트 후 this.maxHp = {this.maxHp}, this.currentFireInterval = {this.currentFireInterval}");
     }
 
     void HandleWeakPointMovement()
@@ -243,8 +243,9 @@ public class BossControl : MonoBehaviour
 
     public void ResetStateForNewStage()
     {
-        currentHp = maxHp; // 새 스테이지 시작 시 체력을 최대로
-        fireTimer = currentFireInterval; // 공격 타이머 리셋
+        Debug.Log($"[LOG] BossControl.ResetStateForNewStage: 호출됨. 진입 시 this.maxHp = {this.maxHp}, this.currentFireInterval = {this.currentFireInterval}");
+        currentHp = maxHp;
+        fireTimer = currentFireInterval;
 
         // 약점 위치 등 기타 상태 초기화
         if (weakPointObject != null && firePoints != null && firePoints.Length > 0)

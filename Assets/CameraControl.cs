@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class CameraControl : MonoBehaviour
 {
@@ -11,8 +12,26 @@ public class CameraControl : MonoBehaviour
 
     public float smoothSpeed = 5.0f; //플레이어를 따라잡는 속도
 
+    public string gameStageSceneName = "GameStage";
+
+
     // Start is called before the first frame update
     void Start()
+    {
+        if (SceneManager.GetActiveScene().name == gameStageSceneName)
+        {
+            AssignPlayerReferences();
+        }
+
+        // 멤버 변수 player에 Player 오브젝트를 할당
+        this.player = GameObject.FindGameObjectWithTag("Player");
+        // 카메라 위치와 플레이어 위치의 차이
+        this.position_offset = this.transform.position - this.player.transform.position;
+
+        this.playerControl = this.player.GetComponent<PlayerControl>(); // 시작 시 참조 가져오기
+    }
+
+    void AssignPlayerReferences()
     {
         // 멤버 변수 player에 Player 오브젝트를 할당
         this.player = GameObject.FindGameObjectWithTag("Player");
@@ -22,20 +41,24 @@ public class CameraControl : MonoBehaviour
         this.playerControl = this.player.GetComponent<PlayerControl>(); // 시작 시 참조 가져오기
     }
 
-
-
     void LateUpdate()
     { // 모든 게임 오브젝트의 Update() 메서드 처리 후에 자동으로 호출
 
-        PlayerControl playerControl = player.GetComponent<PlayerControl>();
-
-        if (this.player == null || this.playerControl == null)
+        if (SceneManager.GetActiveScene().name != gameStageSceneName)
         {
-            return; // 플레이어나 컨트롤러가 없으면 중단
+            return;
         }
 
-        float targetX = this.player.transform.position.x + this.position_offset.x;
+        if (player == null || playerControl == null)
+        {
+            AssignPlayerReferences(); // 플레이어를 다시 찾아봄
+            if (player == null || playerControl == null) // 여전히 없다면 중단
+            {
+                return;
+            }
+        }
 
+        float targetX = this.player.transform.position.x + this.position_offset.x; //
         Vector3 desiredPosition = new Vector3(targetX, transform.position.y, transform.position.z);
 
 

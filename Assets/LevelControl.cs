@@ -60,8 +60,24 @@ public class LevelControl : MonoBehaviour
     void Awake() // 또는 Start()
     {
         LoadAllStageData(); // levelDataFile을 파싱하여 allStageData 리스트를 채움
-        ApplyStageSettings(currentStageID);
-        InitializeBlockGeneration(); // 블록 생성 관련 초기화
+
+        if (this.bossInstance == null) // Inspector에서 할당 안 됐을 경우 대비
+        {
+            this.bossInstance = FindObjectOfType<BossControl>();
+            if (this.bossInstance == null)
+            {
+                Debug.LogWarning("LevelControl.Awake(): 씬에서 BossControl 인스턴스를 찾지 못했습니다!");
+            }
+            else
+            {
+                Debug.Log("LevelControl.Awake(): 씬에서 BossControl 인스턴스 찾음: " + this.bossInstance.gameObject.name);
+            }
+        }
+        else
+        {
+            Debug.Log("LevelControl.Awake(): bossInstance가 Inspector를 통해 이미 할당됨: " + this.bossInstance.gameObject.name);
+        }
+
     }
 
     void LoadAllStageData()
@@ -97,7 +113,13 @@ public class LevelControl : MonoBehaviour
                 stage.heightDiff.max = int.Parse(values[7]);
                 stage.bossMaxHp = float.Parse(values[8]);
                 stage.bossFireInterval = float.Parse(values[9]);
+                if (stage.stageID == 0)
+                { // 첫 스테이지 ID가 0이라고 가정
+                    Debug.Log($"[확인필요_LOG] LevelControl.LoadAllStageData: Stage 0 파싱 결과 -> bossMaxHp: {stage.bossMaxHp}, bossFireInterval: {stage.bossFireInterval}");
+                }
                 allStageData.Add(stage);
+                
+
             }
             catch (System.Exception e)
             {
@@ -108,28 +130,47 @@ public class LevelControl : MonoBehaviour
 
     public void ApplyStageSettings(int stageID)
     {
+        Debug.Log($"[확인필요_LOG] LevelControl.ApplyStageSettings: 스테이지 {stageID} 적용 시작.");
         currentStageSettings = allStageData.Find(s => s.stageID == stageID);
+
         if (currentStageSettings == null)
         {
-            Debug.LogError($"스테이지 ID {stageID} 설정을 찾을 수 없습니다! 기본값을 사용하거나 첫 번째 스테이지를 사용합니다.");
-            if (allStageData.Count > 0) currentStageSettings = allStageData[0]; // 임시: 첫 번째 스테이지 데이터 사용
-            else currentStageSettings = new StageData(); // 임시 기본값
+            Debug.LogError($"[확인필요_LOG] LevelControl: 스테이지 ID {stageID} 설정 못 찾음!");
+            // (오류 처리)
+            return;
         }
-        // 보스 스탯 업데이트
-        if (bossInstance != null)
+        Debug.Log($"[확인필요_LOG] LevelControl: 스테이지 {stageID} 데이터 -> currentStageSettings.bossMaxHp: {currentStageSettings.bossMaxHp}, currentStageSettings.bossFireInterval: {currentStageSettings.bossFireInterval}");
+
+        if (this.bossInstance == null)
         {
-            if (currentStageSettings.bossMaxHp > 0) // 보스가 등장하는 스테이지라면
+            Debug.LogWarning("LevelControl.ApplyStageSettings: this.bossInstance가 NULL이어서 FindObjectOfType<BossControl>() 시도.");
+            this.bossInstance = FindObjectOfType<BossControl>();
+        }
+
+
+        // 보스 스탯 업데이트
+        if (this.bossInstance != null)
+        {
+            Debug.Log($"[확인필요_LOG] LevelControl: bossInstance 유효 ({this.bossInstance.gameObject.name}). currentStageSettings.bossMaxHp = {currentStageSettings.bossMaxHp}");
+            if (currentStageSettings.bossMaxHp > 0)
             {
-                bossInstance.UpdateBossStats(currentStageSettings.bossMaxHp, currentStageSettings.bossFireInterval);
+                Debug.Log($"[확인필요_LOG] LevelControl: UpdateBossStats 호출 예정. 전달될 maxHp: {currentStageSettings.bossMaxHp}, 전달될 fireInterval: {currentStageSettings.bossFireInterval}");
+                this.bossInstance.gameObject.SetActive(true);
+                this.bossInstance.UpdateBossStats(currentStageSettings.bossMaxHp, currentStageSettings.bossFireInterval);
             }
-            else // 보스가 등장하지 않는 스테이지라면 비활성화
+            else
             {
-                bossInstance.gameObject.SetActive(false);
-                if (bossInstance.bossHealthSlider != null)
+                Debug.Log($"[확인필요_LOG] LevelControl: currentStageSettings.bossMaxHp ({currentStageSettings.bossMaxHp}) <= 0. UpdateBossStats 호출 안 함. 보스 비활성화.");
+                this.bossInstance.gameObject.SetActive(false);
+                if (this.bossInstance.bossHealthSlider != null)
                 {
-                    bossInstance.bossHealthSlider.gameObject.SetActive(false);
+                    this.bossInstance.bossHealthSlider.gameObject.SetActive(false);
                 }
             }
+        }
+        else
+        {
+            Debug.LogError("[확인필요_LOG] LevelControl.ApplyStageSettings: FindObjectOfType으로도 this.bossInstance (LevelControl 참조)를 찾지 못했습니다!");
         }
     }
 

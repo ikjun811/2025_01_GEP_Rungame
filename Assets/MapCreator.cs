@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using static LevelControl;
 
 // Block 클래스 추가
@@ -28,15 +29,19 @@ public class MapCreator : MonoBehaviour
         public bool is_created; // 블록이 만들어졌는가
         public Vector3 position; // 블록의 위치
     };
+
+
     private FloorBlock last_block; // 마지막에 생성한 블록
     private PlayerControl player = null;// scene상의 Player를 보관
     private BlockCreator block_creator; // BlockCreator를 보관
 
     private LevelControl level_control = null;
 
-    public TextAsset level_data_text = null;
+    //public TextAsset level_data_text = null;
 
     private GameRoot game_root = null; // 맴버 변수 추가
+
+    public string gameStageSceneName = "GameStage";
 
     void Start()
     {
@@ -44,12 +49,20 @@ public class MapCreator : MonoBehaviour
         this.last_block.is_created = false;
         this.block_creator = this.gameObject.GetComponent<BlockCreator>();
 
+        if (GameRoot.Instance != null)
+        {
+            this.game_root = GameRoot.Instance;
+        }
 
-        this.game_root = this.gameObject.GetComponent<GameRoot>();
     }
 
     void Update()
     {
+        if (SceneManager.GetActiveScene().name != gameStageSceneName || player == null)
+        {
+            return;
+        }
+
         // 플레이어의 X위치를 가져옴
         float block_generate_x = this.player.transform.position.x;
         // 그리고 대략 반 화면만큼 오른쪽으로 이동
@@ -65,6 +78,11 @@ public class MapCreator : MonoBehaviour
 
     private void create_floor_block()
     {
+        if (player == null || level_control == null)
+        {
+            return;
+        }
+
         Vector3 block_position; // 이제부터 만들 블록의 위치
         if (!this.last_block.is_created)
         { // last_block이 생성되지 않은 경우
@@ -101,6 +119,12 @@ public class MapCreator : MonoBehaviour
 
     public bool isDelete(GameObject block_object)
     {
+        if (player == null)
+        {
+            return false;
+        }
+
+
         bool ret = false; // 반환값
         float left_limit = this.player.transform.position.x
         - BLOCK_WIDTH * ((float)BLOCK_NUM_IN_SCREEN / 2.0f); // 삭제 문턱 값

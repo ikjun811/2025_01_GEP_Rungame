@@ -306,6 +306,16 @@ public class PlayerControl : MonoBehaviour
             case STEP.RUN: // 달리는 중일 때,
                            //속도 증가
                 velocity.x = this.current_speed;
+                if (is_landed) // RUN 상태이고 착지했다면
+                {
+                    // 미세한 Y축 상승을 억제하여 바닥에 붙어 있도록 함
+                    if (velocity.y > 0.01f) // 아주 작은 양수 속도라도 있다면 (튕겨오른 직후)
+                    {
+                        velocity.y = 0f; // 강제로 0으로 만들거나, 작은 음수 값으로 설정
+                                         // velocity.y = -0.1f; (바닥으로 살짝 누르는 효과)
+                    }
+                }
+
                 break;
             case STEP.JUMP: // 점프 중일 때
                 velocity.x = this.current_speed;
@@ -515,6 +525,21 @@ public class PlayerControl : MonoBehaviour
         currentPlayerHp = maxPlayerHp;
         UpdatePlayerHealthUI(); // UI도 업데이트
         Debug.Log("플레이어 체력 모두 회복!");
+    }
+
+    public void RestoreSpecificHealth(float amount)
+    {
+        if (currentPlayerHp < maxPlayerHp) // 현재 체력이 최대 체력 미만일 때만 회복
+        {
+            currentPlayerHp += amount;
+            currentPlayerHp = Mathf.Clamp(currentPlayerHp, 0, maxPlayerHp); // 최대 체력을 넘지 않도록
+            UpdatePlayerHealthUI(); // 체력 UI 업데이트
+            Debug.Log($"플레이어 체력 {amount} 회복! 현재 체력: {currentPlayerHp}");
+        }
+        else
+        {
+            Debug.Log("플레이어 체력이 이미 최대입니다.");
+        }
     }
 
 }

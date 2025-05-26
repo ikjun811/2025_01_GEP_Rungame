@@ -25,7 +25,7 @@ RenderSettings:
   m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
   m_AmbientIntensity: 1
   m_AmbientMode: 0
-  m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
+  m_SubtractiveShadowColor: {r: 0.3490566, g: 0.3490566, b: 0.3490566, a: 1}
   m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
@@ -1127,9 +1127,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   step_timer: 0
   totalGameStages: 3
+  gameClearSceneName: GameClearScene
   stageClearUIPanel: {fileID: 1510744639}
-  stageClearDisplayTime: 3
   stageDisplayText: {fileID: 390040765}
+  stageClearDisplayTime: 3
+  stageDisplayUiName: StageNum
+  stageClearPanelUiName: StageClear
   levelControlInstance: {fileID: 437726567}
   mapCreatorInstance: {fileID: 437726569}
   playerControlInstance: {fileID: 191032049}
@@ -1146,7 +1149,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c2f192934a81251459c5c52efaed0aee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  level_data_text: {fileID: 4900000, guid: ac4d085684643174e85338fbe164e370, type: 3}
+  gameStageSceneName: GameStage
 --- !u!1 &464608314
 GameObject:
   m_ObjectHideFlags: 0
@@ -1309,7 +1312,7 @@ MonoBehaviour:
   followDistance: 50
   yPosition: 5
   zPositionOffset: 0
-  maxHp: 0
+  maxHp: 12
   wallPrefab: {fileID: 5380733653009047593, guid: 1d21df43e9bbc73428480fa8e027b549, type: 3}
   weakPointObject: {fileID: 6035303}
   firePoints:
@@ -1701,7 +1704,7 @@ Transform:
   m_GameObject: {fileID: 963194225}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.67559016, z: 0, w: 0.7372774}
-  m_LocalPosition: {x: -5, y: 5, z: -3}
+  m_LocalPosition: {x: -5, y: 5, z: -2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1719,7 +1722,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: da90caa3aeaad134095c5c77cddd2913, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  smoothSpeed: 5
+  smoothSpeed: 10
+  gameStageSceneName: GameStage
 --- !u!1 &1025298959
 GameObject:
   m_ObjectHideFlags: 0
@@ -2282,7 +2286,7 @@ GameObject:
   - component: {fileID: 1884599181}
   - component: {fileID: 1884599180}
   m_Layer: 5
-  m_Name: Text (TMP)
+  m_Name: StageClearText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2440,6 +2444,58 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &1940550002
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1940550003}
+  - component: {fileID: 1940550004}
+  m_Layer: 0
+  m_Name: ItemSpawner
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1940550003
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1940550002}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -7.6639557, y: 6.3080335, z: -7.988468}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1940550004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1940550002}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf1f8aa7990c78f4ab549880eb11f8a3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  healthPackPrefab: {fileID: 354820530232707127, guid: 0ac94226e301bb847be910cafa8c47b3, type: 3}
+  stonePackPrefab: {fileID: 354820530232707127, guid: f2d5b1a6fffd22641abf7b54bd97e3ab, type: 3}
+  spawnIntervalMin: 8
+  spawnIntervalMax: 15
+  itemSpawnYPosition: 3
+  itemSpawnZMin: -3
+  itemSpawnZMax: 3
+  itemSpawnXOffset: 25
 --- !u!1 &1940748231
 GameObject:
   m_ObjectHideFlags: 0
@@ -2632,3 +2688,4 @@ SceneRoots:
   - {fileID: 437726566}
   - {fileID: 307296539}
   - {fileID: 547511834}
+  - {fileID: 1940550003}
