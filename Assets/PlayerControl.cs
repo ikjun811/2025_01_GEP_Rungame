@@ -58,6 +58,10 @@ public class PlayerControl : MonoBehaviour
     public float additionalStoneSpeed = 15f;
     public GameObject heldStoneVisual;
 
+    private Vector3 lastSafePosition; // 마지막으로 안전했던 위치 (부활 지점용)
+    public float respawnYPosition = 2.0f; // 부활할 때의 기본 Y 좌표
+    public float respawnZPosition = 0f; // 부활할 때의 기본 Z 좌표 (3레인 중앙 등)
+
 
     public enum STEP
     { // Player의 각종 상태를 나타내는 자료형 (열거체)
@@ -98,6 +102,9 @@ public class PlayerControl : MonoBehaviour
         dashCoolDownTimer = 0f;
         currentPlayerHp = maxPlayerHp;
         hasStone = false;
+
+        lastSafePosition = new Vector3(transform.position.x, respawnYPosition, respawnZPosition);
+
         if (heldStoneVisual != null)
         {
             heldStoneVisual.SetActive(hasStone); // 초기 상태에 맞춰 비활성화
@@ -133,7 +140,12 @@ public class PlayerControl : MonoBehaviour
         {
             isFloating = false;       // 착지하면 부양 종료
             hasDoubleJumped = false;  // 착지하면 더블 점프 수행 상태 초기화
+            lastSafePosition = new Vector3(transform.position.x, respawnYPosition, respawnZPosition);
+        }
 
+        if (this.step != STEP.MISS && this.transform.position.y < NARAKU_HEIGHT)
+        {
+            HandleFall(); // 낙하 처리 메서드 호출
         }
 
 
@@ -539,6 +551,55 @@ public class PlayerControl : MonoBehaviour
         else
         {
             Debug.Log("플레이어 체력이 이미 최대입니다.");
+        }
+    }
+
+    void HandleFall()
+    {
+        Debug.Log("PlayerControl: NARAKU_HEIGHT 도달! 낙하 처리 시작.");
+        this.step = STEP.MISS; // 일단 MISS 상태로 변경하여 추가 동작 방지
+        this.next_step = STEP.MISS; // 다음 상태도 MISS로 고정
+
+        Rigidbody rb = GetComponent<Rigidbody>();
+        rb.velocity = Vector3.zero; // 떨어지는 속도 즉시 멈춤
+
+        if (GameRoot.Instance != null)
+        {
+            if (GameRoot.Instance.ConsumeLife()) // GameRoot에 생명력 소모 요청
+            {
+                // 생명력 소모 성공 -> 부활
+                Debug.Log("PlayerControl: 생명력 소모 후 부활합니다.");
+                // 부활 위치로 이동
+                transform.position = lastSafePosition; // 미리 저장된 안전한 위치로 이동
+
+                // 상태 초기화 (RUN 또는 JUMP로 시작하도록)
+                // this.step = STEP.RUN; // 또는 아래처럼 next_step만 설정
+                this.next_step = STEP.RUN; // 다음 프레임에 RUN 상태로 전환됨
+                this.step_timer = 0.0f;
+                this.is_landed = true; // 안전한 지점으로 옮겼으므로 착지 상태로 간주 (또는 is_landed=false 후 바로 떨어지게)
+                                       // 만약 공중에서 부활시키려면 is_landed = false, next_step = STEP.JUMP 로 설정
+                this.is_key_released = false;
+                this.isFloating = false;
+                this.hasDoubleJumped = false;
+
+                // 만약 체력이나 스태미너도 일부 회복시키려면 여기에 코드 추가
+                // currentStamina = maxStamina * 0.5f; UpdateStaminaUI();
+                // currentPlayerHp = maxPlayerHp * 0.5f; UpdatePlayerHealthUI();
+            }
+            else
+            {
+                // 소모할 생명력 없음 -> 게임 오버
+                Debug.Log("PlayerControl: 남은 생명력 없음. GameRoot에 게임 오버 알림.");
+                // 추가적인 플레이어 비활성화 등 처리 가능
+                // gameObject.SetActive(false); 
+                GameRoot.Instance.TriggerGameOver();
+            }
+        }
+        else
+        {
+            Debug.LogError("PlayerControl: GameRoot 인스턴스를 찾을 수 없어 낙하 처리를 정상적으로 진행할 수 없습니다. 메인 메뉴로 돌아갑니다.");
+            // 비상 탈출구 (GameRoot가 없는 매우 예외적인 상황)
+            SceneManager.LoadScene("MainMenu"); // MainMenu 씬 이름 확인 필요
         }
     }
 
