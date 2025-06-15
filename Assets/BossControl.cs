@@ -34,6 +34,14 @@ public class BossControl : MonoBehaviour
     private LevelControl levelControl;
     private PlayerControl playerControl;
 
+    [Header("추가 패턴 (빨간 벽)")]
+    public GameObject redWallPrefab;            //  빨간 벽 프리팹
+    public float redWallFireInterval = 3.5f;    //  빨간 벽 발사 주기
+    private float redWallFireTimer;             //  빨간 벽 타이머
+    public int redWallPatternStageID = 2;       // 이 패턴이 시작될 스테이지 ID (0부터 시작하므로 3라운드는 2)
+    private bool isRedWallPatternActive = false;//  현재 추가 패턴이 활성화되었는지 여부
+
+
     // Start is called before the first frame update
     void Start()
     {
@@ -76,6 +84,7 @@ public class BossControl : MonoBehaviour
 
         HandleMovement();
         HandleAttack();
+        HandleRedWallAttack();
         HandleWeakPointMovement();
     }
 
@@ -105,6 +114,21 @@ public class BossControl : MonoBehaviour
             }
         }
     }
+
+    void HandleRedWallAttack()
+    {
+        // 추가 패턴이 활성화되지 않았거나, 보스가 죽었으면 실행 안 함
+        if (!isRedWallPatternActive || currentHp <= 0) return;
+
+        redWallFireTimer -= Time.deltaTime;
+        if (redWallFireTimer <= 0f)
+        {
+            FireRedWall();
+            redWallFireTimer = redWallFireInterval; // 타이머 리셋
+        }
+    }
+
+
 
     void FireWall()
     {
@@ -160,12 +184,42 @@ public class BossControl : MonoBehaviour
         }
     }
 
+    void FireRedWall()
+    {
+        if (redWallPrefab == null || firePoints == null || firePoints.Length == 0) return;
+
+        // 발사 지점 랜덤 선택 (기존과 동일)
+        int randomIndex = Random.Range(0, firePoints.Length);
+        Transform selectedFirePoint = firePoints[randomIndex];
+        if (selectedFirePoint == null) return;
+
+        // 벽 생성 및 속도 설정 (기존과 유사)
+        GameObject wallInstance = Instantiate(redWallPrefab, selectedFirePoint.position, Quaternion.identity);
+        Rigidbody wallRb = wallInstance.GetComponent<Rigidbody>();
+        if (wallRb != null)
+        {
+            wallRb.velocity = Vector3.left * wallSpeed; // wallSpeed는 기존 파란 벽과 공유하거나 새로 설정
+        }
+        else
+        {
+            // Rigidbody가 없다면 RedWallMovement 같은 별도 스크립트로 이동 처리
+            // 예: redWallInstance.GetComponent<RedWallMovement>().Initialize(Vector3.left, wallSpeed);
+        }
+    }
+
     public void TakeDamage(float amount)
     {
         currentHp -= amount;
         currentHp = Mathf.Clamp(currentHp, 0, maxHp);
         UpdateBossHealthUI();
         Debug.Log($"보스 체력: {currentHp} / {maxHp}");
+
+        if (SoundManager.Instance != null)
+        {
+            SoundManager.Instance.PlaySfx(SoundManager.Instance.bossHitSfx);
+        }
+
+
 
         if (currentHp <= 0)
         {
@@ -241,13 +295,25 @@ public class BossControl : MonoBehaviour
         }
     }
 
-    public void ResetStateForNewStage()
+    public void ResetStateForNewStage(int currentStageID)
     {
         Debug.Log($"[LOG] BossControl.ResetStateForNewStage: 호출됨. 진입 시 this.maxHp = {this.maxHp}, this.currentFireInterval = {this.currentFireInterval}");
         currentHp = maxHp;
         fireTimer = currentFireInterval;
 
         // 약점 위치 등 기타 상태 초기화
+        if (currentStageID == redWallPatternStageID)
+        {
+            isRedWallPatternActive = true;
+            redWallFireTimer = redWallFireInterval; // 빨간 벽 타이머도 초기화
+            Debug.Log("보스 추가 패턴 (빨간 벽)이 활성화되었습니다.");
+        }
+        else
+        {
+            isRedWallPatternActive = false;
+            Debug.Log("보스 추가 패턴 (빨간 벽)이 비활성화되었습니다.");
+        }
+
         if (weakPointObject != null && firePoints != null && firePoints.Length > 0)
         {
             currentWeakPointFirePointIndex = 0;

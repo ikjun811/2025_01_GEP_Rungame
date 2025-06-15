@@ -15,6 +15,54 @@ public class CameraControl : MonoBehaviour
     public string gameStageSceneName = "GameStage";
 
 
+
+    void Awake()
+    {
+        // 1. 이 카메라가 메인 카메라 역할을 하도록 강제합니다.
+        // 이 코드는 이 카메라가 항상 MainCamera 태그를 갖도록 보장합니다.
+        if (gameObject.tag != "MainCamera")
+        {
+            gameObject.tag = "MainCamera";
+            Debug.LogWarning($"카메라 '{gameObject.name}'의 태그를 'MainCamera'로 강제 설정했습니다.");
+        }
+
+        // 2. 카메라의 Clear Flags를 Skybox로 강제 설정합니다.
+        // 이것이 배경이 보이지 않는 문제의 직접적인 원인일 수 있습니다.
+        Camera cam = GetComponent<Camera>();
+        if (cam.clearFlags != CameraClearFlags.Skybox)
+        {
+            cam.clearFlags = CameraClearFlags.Skybox;
+            Debug.LogWarning($"카메라 '{gameObject.name}'의 Clear Flags를 'Skybox'로 강제 설정했습니다.");
+        }
+
+        // 3. Culling Mask를 Everything으로 강제 설정합니다 (모든 레이어를 렌더링).
+        // 특정 레이어가 꺼져서 안 보이는 문제를 방지합니다.
+        // -1은 비트마스크로 모든 비트가 1임을 의미하며, 'Everything'과 같습니다.
+        if (cam.cullingMask != -1)
+        {
+            cam.cullingMask = -1;
+            Debug.LogWarning($"카메라 '{gameObject.name}'의 Culling Mask를 'Everything'으로 강제 설정했습니다.");
+        }
+
+        // 씬 로드 시 플레이어 참조를 다시 하도록 이벤트를 구독합니다.
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // 게임 스테이지 씬일 때만 플레이어 참조를 찾습니다.
+        if (scene.name == gameStageSceneName)
+        {
+            AssignPlayerReferences();
+        }
+    }
+
+    /*
     // Start is called before the first frame update
     void Start()
     {
@@ -30,7 +78,7 @@ public class CameraControl : MonoBehaviour
 
         this.playerControl = this.player.GetComponent<PlayerControl>(); // 시작 시 참조 가져오기
     }
-
+    */
     void AssignPlayerReferences()
     {
         // 멤버 변수 player에 Player 오브젝트를 할당

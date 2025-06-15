@@ -7,6 +7,7 @@ public class ItemSpawner : MonoBehaviour
     [Header("아이템 프리팹")]
     public GameObject healthPackPrefab; // Inspector에서 체력 회복 아이템 프리팹 연결
     public GameObject stonePackPrefab;  // Inspector에서 돌멩이 회복 아이템 프리팹 연결
+    public GameObject shieldPrefab;
 
     [Header("스폰 설정")]
     public float spawnIntervalMin = 8.0f;   // 최소 스폰 간격 (초)
@@ -68,6 +69,7 @@ public class ItemSpawner : MonoBehaviour
         List<GameObject> availableItems = new List<GameObject>();
         if (healthPackPrefab != null) availableItems.Add(healthPackPrefab);
         if (stonePackPrefab != null) availableItems.Add(stonePackPrefab);
+        if (shieldPrefab != null) availableItems.Add(shieldPrefab);
 
         if (availableItems.Count == 0)
         {

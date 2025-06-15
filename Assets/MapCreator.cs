@@ -177,8 +177,8 @@ public class MapCreator : MonoBehaviour
         }
 
         // 맵 생성 상태 초기화
-        this.last_block.is_created = false;
-        this.last_block.position = Vector3.zero; // 초기 기준 위치 설정
+        //this.last_block.is_created = false;
+        //this.last_block.position = Vector3.zero; // 초기 기준 위치 설정
 
         if (this.level_control != null)
         {
@@ -192,6 +192,14 @@ public class MapCreator : MonoBehaviour
             Debug.LogError("MapCreator: LevelControl 참조가 없습니다. InitializeBlockGeneration 호출 불가.");
         }
         Debug.Log("MapCreator: 새 스테이지에 대한 초기화 완료 시도.");
+    }
+
+
+    public void ResetForNewGame()
+    {
+        Debug.Log("MapCreator: 완전 초기화 (ResetForNewGame).");
+        this.last_block.is_created = false;
+        this.last_block.position = Vector3.zero;
     }
 
 }

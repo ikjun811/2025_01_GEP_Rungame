@@ -12,7 +12,7 @@ public class PlayerControl : MonoBehaviour
     public static float JUMP_KEY_RELEASE_REDUCE = 0.5f; // 점프 감속도
     public static float DOUBLE_JUMP_HEIGHT_REDUCE = 0.7f; //더블 점프 감속도
     public float floatStaminaCostRate = 30f; // 부양 중 초당 스테미너 소모량
-    public float minFloatStamina = 5f; // 부양 가능 최소 스테미너
+    public float minFloatStamina = 10f; // 부양 가능 최소 스테미너
 
 
     public float maxStamina = 100f;         // 최대 스태미너
@@ -32,7 +32,7 @@ public class PlayerControl : MonoBehaviour
 
     public float dashDistance = 100f; // 돌진 거리
     public float dashSpeedMultiplier = 5f; // 돌진 속도 배율
-    public float dashStaminaCost = 20f; // 돌진 시 스테미너 소모량
+    //public float dashStaminaCost = 20f; // 돌진 시 스테미너 소모량
     public float dashCoolDownTime = 1f; // 돌진 쿨타임
 
     private bool isDashing = false;          // 돌진 중인지 여부
@@ -42,8 +42,8 @@ public class PlayerControl : MonoBehaviour
     private float dashTimer = 0.0f;   // 돌진 상태 내부 타이머
 
     public float lateralSpeed = 8.0f; // 좌우 이동 속도
-    public float minZPos = -7f; // 왼쪽 이동 제한
-    public float maxZPos = 7f;  // 오른쪽 이동 제한
+    public float minZPos = -5f; // 왼쪽 이동 제한
+    public float maxZPos = 5f;  // 오른쪽 이동 제한
 
     [Header("플레이어 체력")]
     public float maxPlayerHp = 100f;
@@ -57,6 +57,21 @@ public class PlayerControl : MonoBehaviour
     //public float stoneThrowForce = 50f;   // 돌멩이 발사 힘
     public float additionalStoneSpeed = 15f;
     public GameObject heldStoneVisual;
+
+    [Header("플레이어 제약")]
+    public float maxRiseSpeed = 8.0f;  // 평상시 상승 속도 제한
+    public float emergencyMaxHeight = 15.0f; // 비상용 최대 높이 제한
+
+    [Header("돌진 쿨타임 UI")]
+    public Slider dashCooldownSlider;
+
+    [Header("상태 아이콘 UI")]
+    public GameObject stoneLoadedIcon; // Inspector에서 돌멩이 아이콘 연결
+    public GameObject shieldActiveIcon;  // Inspector에서 실드 아이콘 연결
+
+    [Header("방어막 설정")]
+    public GameObject shieldVisualEffect; // 방어막 이펙트 오브젝트
+    private bool isShieldActive = false;  // 현재 방어막 활성화 상태
 
 
     public enum STEP
@@ -102,7 +117,18 @@ public class PlayerControl : MonoBehaviour
         {
             heldStoneVisual.SetActive(hasStone); // 초기 상태에 맞춰 비활성화
         }
+
+        dashCooldownSlider.gameObject.SetActive(false);
         UpdatePlayerHealthUI();
+
+        if (shieldVisualEffect != null)
+        {
+            shieldVisualEffect.SetActive(false); // 게임 시작 시 방어막 비활성화
+        }
+        isShieldActive = false;
+
+        if (stoneLoadedIcon != null) stoneLoadedIcon.SetActive(false);
+        if (shieldActiveIcon != null) shieldActiveIcon.SetActive(false);
 
     }
 
@@ -146,9 +172,25 @@ public class PlayerControl : MonoBehaviour
         // 부양 로직
         if (isFloating && step == STEP.JUMP && hasDoubleJumped)
         {
-            if (Input.GetKey(KeyCode.Space) && currentStamina > minFloatStamina) // 현재 Y 속도가 최대치보다 작을 때만 힘을 가함
+            if (Input.GetKey(KeyCode.Space) && currentStamina > minFloatStamina)
             {
-                rb.AddForce(Vector3.up * upwardForceValue, ForceMode.VelocityChange);
+  
+                Vector3 vel = rb.velocity;
+
+                // 현재 y 속도가 최대 부양 속도(maxFloatYSpeed)보다 낮을 때만 부드럽게 상승
+                if (vel.y < maxFloatYSpeed)
+                {
+                    // 목표 속도까지 서서히 도달하도록 힘을 가함
+                    rb.AddForce(Vector3.up * upwardForceValue, ForceMode.Acceleration);
+                }
+                else
+                {
+                    // 이미 최대 속도에 도달했거나 그보다 빠르면, 속도를 강제로 유지
+                    vel.y = maxFloatYSpeed;
+                    rb.velocity = vel;
+                }
+
+                // 스태미나 소모
                 float staminaToConsume = floatStaminaCostRate * Time.deltaTime;
                 currentStamina -= staminaToConsume;
                 currentStamina = Mathf.Clamp(currentStamina, 0f, maxStamina);
@@ -157,27 +199,60 @@ public class PlayerControl : MonoBehaviour
             UpdateStaminaUI();
         }
 
-        if (hasStone && Input.GetMouseButtonDown(0)) // 마우스 휠 클릭 (가운데 버튼) 그리고 돌멩이가 있을때
+        if (velocity.y > maxRiseSpeed)
+        {
+            velocity.y = maxRiseSpeed;
+        }
+
+
+        if (hasStone && Input.GetMouseButtonDown(0)) // 마우스 좌클릭 그리고 돌멩이가 있을때
         {
             ThrowStone();
         }
 
 
 
+        if (dashCoolDownTimer > 0)
+        {
+            dashCoolDownTimer -= Time.deltaTime;
+
+            // 쿨타임이 도는 동안 슬라이더 업데이트
+            if (dashCooldownSlider != null)
+            {
+               
+                dashCooldownSlider.value = dashCoolDownTimer / dashCoolDownTime;
+            }
+            
+        }
+        else if (dashCooldownSlider != null && dashCooldownSlider.gameObject.activeInHierarchy)
+        {
+
+            dashCoolDownTimer = 0; // 음수가 되지 않도록 0으로 고정
+            dashCooldownSlider.gameObject.SetActive(false); // 슬라이더 비활성화
+        }
+
 
 
         if (Input.GetMouseButtonDown(1) &&      // 우클릭
         this.step != STEP.DASH &&           // 현재 돌진 상태가 아닐 때 (중복 방지)
         dashCoolDownTimer <= 0f &&          // 쿨타임이 끝났을 때
-        currentStamina >= dashStaminaCost && // 스태미나가 충분할 때
         (this.step == STEP.RUN || this.step == STEP.JUMP)) // 달리기 또는 점프 중에만
         {
-            currentStamina -= dashStaminaCost;
-            UpdateStaminaUI();
+
+            if (SoundManager.Instance != null)
+            {
+                SoundManager.Instance.PlaySfx(SoundManager.Instance.playerDashSfx);
+            }
 
             dashCoolDownTimer = dashCoolDownTime; // 쿨타임 시작
-            this.isDashing = true; // isDashing 플래그는 카메라 연출 등에 사용될 수 있습니다.
-                                   // 실제 돌진 행동은 STEP.DASH 상태로 제어합니다.
+
+            if (dashCooldownSlider != null)
+            {
+                dashCooldownSlider.gameObject.SetActive(true);
+                dashCooldownSlider.value = 1.0f; 
+            }
+            this.isDashing = true; 
+               
             this.next_step = STEP.DASH;
         }
 
@@ -445,6 +520,18 @@ public class PlayerControl : MonoBehaviour
     {
         if (this.step == STEP.MISS || this.next_step == STEP.MISS) return; // 이미 죽은 상태면 데미지 안 받음
 
+        if (isShieldActive)
+        {
+            DeactivateShield(); // 방어막 비활성화
+            Debug.Log("방어막이 데미지를 흡수했습니다!");
+            return; // 데미지 처리 로직을 실행하지 않고 함수 종료
+        }
+
+        if (SoundManager.Instance != null)
+        {
+            SoundManager.Instance.PlaySfx(SoundManager.Instance.playerHitSfx);
+        }
+
         currentPlayerHp -= amount;
         currentPlayerHp = Mathf.Clamp(currentPlayerHp, 0, maxPlayerHp);
         UpdatePlayerHealthUI();
@@ -484,10 +571,22 @@ public class PlayerControl : MonoBehaviour
 
     public void CollectStone()
     {
+        if (SoundManager.Instance != null)
+        {
+            SoundManager.Instance.PlaySfx(SoundManager.Instance.stoneAcquireSfx);
+        }
+
+
         if (!hasStone) // 돌멩이가 없을 때만 획득
         {
+  
             hasStone = true;
             heldStoneVisual.SetActive(true);
+
+            if (stoneLoadedIcon != null)
+            {
+                stoneLoadedIcon.SetActive(true);
+            }
             Debug.Log("돌멩이 획득!");
         }
     }
@@ -501,6 +600,11 @@ public class PlayerControl : MonoBehaviour
         }
 
         Debug.Log("돌멩이 투척!");
+
+        if (SoundManager.Instance != null)
+        {
+            SoundManager.Instance.PlaySfx(SoundManager.Instance.stoneThrowSfx);
+        }
         // 1. 발사 방향 결정
         Vector3 throwDirection = Vector3.right; // (1, 0, 0)
 
@@ -533,6 +637,12 @@ public class PlayerControl : MonoBehaviour
 
         hasStone = false; // 돌멩이 사용
         heldStoneVisual.SetActive(false);
+
+        if (stoneLoadedIcon != null)
+        {
+            stoneLoadedIcon.SetActive(false);
+        }
+
     }
 
     public void RestoreHealth()
@@ -544,8 +654,15 @@ public class PlayerControl : MonoBehaviour
 
     public void RestoreSpecificHealth(float amount)
     {
+        if (SoundManager.Instance != null)
+        {
+            SoundManager.Instance.PlaySfx(SoundManager.Instance.healthRestoreSfx);
+        }
+
         if (currentPlayerHp < maxPlayerHp) // 현재 체력이 최대 체력 미만일 때만 회복
         {
+
+
             currentPlayerHp += amount;
             currentPlayerHp = Mathf.Clamp(currentPlayerHp, 0, maxPlayerHp); // 최대 체력을 넘지 않도록
             UpdatePlayerHealthUI(); // 체력 UI 업데이트
@@ -555,6 +672,108 @@ public class PlayerControl : MonoBehaviour
         {
             Debug.Log("플레이어 체력이 이미 최대입니다.");
         }
+    }
+
+
+    public void ActivateShield()
+    {
+        if (SoundManager.Instance != null)
+        {
+            SoundManager.Instance.PlaySfx(SoundManager.Instance.shieldActivateSfx);
+        }
+
+        // 이미 방어막이 활성화 상태라면 아무것도 하지 않음 (최대 1개)
+        if (isShieldActive)
+        {
+            Debug.Log("이미 방어막이 활성화되어 있습니다.");
+            return;
+        }
+
+
+
+
+        isShieldActive = true;
+        if (shieldVisualEffect != null)
+        {
+            shieldVisualEffect.SetActive(true);
+        }
+        Debug.Log("방어막 활성화!");
+
+        if (shieldActiveIcon != null)
+        {
+            shieldActiveIcon.SetActive(true);
+        }
+
+
+    }
+
+    private void DeactivateShield()
+    {
+        isShieldActive = false;
+        if (shieldVisualEffect != null)
+        {
+            shieldVisualEffect.SetActive(false);
+        }
+
+        // 여기에 '방어막 파괴' 효과음을 넣습니다.
+        if (SoundManager.Instance != null)
+        {
+            SoundManager.Instance.PlaySfx(SoundManager.Instance.shieldBreakSfx); // SoundManager에 이 클립 추가 필요
+        }
+
+        if (shieldActiveIcon != null)
+        {
+            shieldActiveIcon.SetActive(false);
+        }
+    }
+
+    public void ResetPlayerStateForNewGame()
+    {
+        Debug.Log("PlayerControl: 플레이어 상태를 새 게임에 맞게 리셋합니다.");
+
+        // 1. 능력치(스탯) 초기화
+        currentPlayerHp = maxPlayerHp;
+        currentStamina = maxStamina;
+
+        // 2. 아이템 및 상태 초기화
+        hasStone = false;
+        isShieldActive = false;
+
+        // 3. 시각 효과(Visuals) 초기화
+        if (heldStoneVisual != null)
+        {
+            heldStoneVisual.SetActive(false); // 손에 든 돌멩이 모델 비활성화
+        }
+        if (shieldVisualEffect != null)
+        {
+            shieldVisualEffect.SetActive(false); // 방어막 이펙트 비활성화
+        }
+
+        // 4. UI 초기화
+        // 체력 및 스태미나 바를 가득 찬 상태로 업데이트
+        UpdatePlayerHealthUI();
+        UpdateStaminaUI();
+
+        // 상태 아이콘 비활성화
+        if (stoneLoadedIcon != null)
+        {
+            stoneLoadedIcon.SetActive(false);
+        }
+        if (shieldActiveIcon != null)
+        {
+            shieldActiveIcon.SetActive(false);
+        }
+
+        // 5. 플레이어 위치 및 상태 초기화 
+
+        this.step = STEP.RUN;
+        this.next_step = STEP.NONE;
+        this.GetComponent<Rigidbody>().velocity = Vector3.zero; // 물리 속도 초기화
+    }
+
+    public float GetCurrentSpeed()
+    {
+        return current_speed;
     }
 
 }

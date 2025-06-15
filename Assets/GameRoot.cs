@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
+using UnityEngine.UI;
 
 public class GameRoot : MonoBehaviour
 {
@@ -32,6 +33,11 @@ public class GameRoot : MonoBehaviour
     public PlayerControl playerControlInstance;
     public BossControl bossInstance;
 
+    [Header("인게임 UI")]
+    public Button goToMainMenuButton;
+
+    [Header("씬 이름")]
+    public string mainMenuSceneName = "MainMenu";
 
 
 
@@ -41,7 +47,7 @@ public class GameRoot : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
-            SceneManager.sceneLoaded += OnGameSceneLoaded; 
+            SceneManager.sceneLoaded += OnGameSceneLoaded;
         }
         else if (Instance != this)
         {
@@ -51,7 +57,7 @@ public class GameRoot : MonoBehaviour
 
     }
 
-    
+
     void OnDestroy()
     {
         if (Instance == this)
@@ -63,9 +69,27 @@ public class GameRoot : MonoBehaviour
     void OnGameSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         // 로드된 씬이 실제 게임 플레이 씬인지 확인 (씬 이름으로 비교)
-        if (scene.name == "GameStage") 
+        if (scene.name == "GameStage")
         {
             Debug.Log($"GameRoot: '{scene.name}' 로드됨. 현재 논리적 스테이지 ID: {_currentLogicalStageID} 기준으로 스테이지 설정 시작.");
+
+            GameObject buttonObj = GameObject.Find("GoToMainMenuButton"); // Hierarchy의 버튼 이름과 일치해야 함
+            if (buttonObj != null)
+            {
+                goToMainMenuButton = buttonObj.GetComponent<Button>();
+
+                // 2. 리스너를 초기화하고 새로 등록합니다.
+                if (goToMainMenuButton != null)
+                {
+                    goToMainMenuButton.onClick.RemoveAllListeners();
+                    goToMainMenuButton.onClick.AddListener(GoToMainMenu);
+                    goToMainMenuButton.gameObject.SetActive(true); // 버튼 활성화
+                }
+            }
+            else
+            {
+                Debug.LogWarning("GoToMainMenuButton을 씬에서 찾을 수 없습니다.");
+            }
 
             GameObject stageTextObj = GameObject.Find(stageDisplayUiName);
             if (stageTextObj != null)
@@ -95,6 +119,7 @@ public class GameRoot : MonoBehaviour
             }
             else
             {
+
                 Debug.LogError($"GameRoot: '{stageClearPanelUiName}' 이름을 가진 UI 오브젝트를 찾지 못했습니다. stageClearUIPanel 참조 실패.");
                 stageClearUIPanel = null; // 못 찾았으면 null로 확실히 처리
             }
@@ -109,11 +134,30 @@ public class GameRoot : MonoBehaviour
             if (mapCreatorInstance == null) Debug.LogError("GameRoot OnGameSceneLoaded: MapCreator를 찾지 못했습니다!");
             if (playerControlInstance == null) Debug.LogError("GameRoot OnGameSceneLoaded: PlayerControl을 찾지 못했습니다!");
 
+
+            if (_currentLogicalStageID == 0)
+            {
+                // 플레이어 참조가 유효하다면, 리셋 함수를 호출합니다.
+                if (playerControlInstance != null)
+                {
+                    playerControlInstance.ResetPlayerStateForNewGame();
+                }
+                else
+                {
+                    Debug.LogError("GameRoot: 플레이어 상태를 리셋해야 하지만, PlayerControl 참조가 없습니다!");
+                }
+
+                // MapCreator도 새 게임에 맞게 완전 초기화
+                if (mapCreatorInstance != null)
+                {
+                    mapCreatorInstance.ResetForNewGame();
+                }
+            }
             // 현재 _currentLogicalStageID에 맞춰 새 스테이지 환경 구성
             StartNewStage(_currentLogicalStageID);
             UpdateStageDisplayText();
         }
-        else if(scene.name == "ClearMenu")
+        else if (scene.name == "ClearMenu")
         {
             Debug.Log($"GameRoot: 게임 클리어 씬 '{scene.name}' 로드됨.");
             // 게임 클리어 씬에서는 GameRoot의 특정 UI 업데이트는 필요 없을 수 있습니다.
@@ -129,9 +173,16 @@ public class GameRoot : MonoBehaviour
         }
         else
         {
-          Debug.Log($"GameRoot: 게임 플레이/클리어 씬이 아닌 '{scene.name}' 로드됨.");
+
+
+            Debug.Log($"GameRoot: 게임 플레이/클리어 씬이 아닌 '{scene.name}' 로드됨.");
             if (stageDisplayText != null && stageDisplayText.gameObject != null) stageDisplayText.gameObject.SetActive(false);
             if (stageClearUIPanel != null && stageClearUIPanel.gameObject != null) stageClearUIPanel.SetActive(false);
+            if (goToMainMenuButton != null && goToMainMenuButton.gameObject != null)
+            {
+                goToMainMenuButton.gameObject.SetActive(false);
+            }
+            Time.timeScale = 1f;
         }
     }
 
@@ -167,12 +218,12 @@ public class GameRoot : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        this.step_timer += Time.deltaTime; // 경과 시간을 더함
+        this.step_timer += Time.deltaTime;
     }
 
     public float getPlayTime()
     {
-        return this.step_timer; 
+        return this.step_timer;
     }
 
     private IEnumerator StageClearSequenceCoroutine()
@@ -249,6 +300,16 @@ public class GameRoot : MonoBehaviour
             if (levelControlInstance == null) Debug.LogError("GameRoot: MapCreator 초기화에 필요한 LevelControl 인스턴스가 없습니다!");
         }
 
+        if (logicalStageID == 0 && mapCreatorInstance != null)
+        {
+            mapCreatorInstance.ResetForNewGame();
+        }
+
+        if (mapCreatorInstance != null && levelControlInstance != null)
+        {
+            mapCreatorInstance.InitializeForNewStage(this.levelControlInstance);
+        }
+
         // 3. 보스 리셋 또는 새 보스 설정
         ResetBossForStage(logicalStageID);
 
@@ -269,12 +330,12 @@ public class GameRoot : MonoBehaviour
             {
                 Debug.Log($"[LOG] GameRoot.ResetBossForStage: currentStageData.bossMaxHp > 0 이므로 ResetStateForNewStage 호출.");
                 bossInstance.gameObject.SetActive(true);
-                bossInstance.ResetStateForNewStage();
+                bossInstance.ResetStateForNewStage(logicalStageID);
             }
             else
             {
                 Debug.Log($"[LOG] GameRoot.ResetBossForStage: currentStageData.bossMaxHp <= 0 이므로 보스 비활성화.");
-                
+
                 bossInstance.gameObject.SetActive(false);
                 if (bossInstance.bossHealthSlider != null)
                 {
@@ -322,4 +383,15 @@ public class GameRoot : MonoBehaviour
     }
 
     public int GetCurrentLogicalStageID() { return _currentLogicalStageID; }
+
+    public void GoToMainMenu()
+    {
+        // 씬 전환 시 Time.timeScale을 1로 되돌리는 것은 좋은 습관입니다.
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(mainMenuSceneName);
+        Debug.Log($"'{mainMenuSceneName}' 씬으로 돌아갑니다.");
+    }
+
 }
+
+

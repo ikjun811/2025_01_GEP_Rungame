@@ -6,7 +6,8 @@ using UnityEngine;
 public enum ItemType
 {
     HealthPack, // 체력 회복 아이템
-    StonePack   // 돌멩이 회복 아이템
+    StonePack,   // 돌멩이 회복 아이템
+           Shield //방어막 아이템
 }
 
 public class Item : MonoBehaviour
@@ -34,6 +35,7 @@ public class Item : MonoBehaviour
     void CollectItem(PlayerControl player)
     {
         Debug.Log($"아이템 획득: {itemType}");
+
         switch (itemType)
         {
             case ItemType.HealthPack:
@@ -42,8 +44,11 @@ public class Item : MonoBehaviour
             case ItemType.StonePack:
                 player.CollectStone(); // PlayerControl의 기존 CollectStone() 함수 사용
                 break;
+            case ItemType.Shield: // 
+                player.ActivateShield(); // 
+                break;
         }
-        // 여기에 아이템 획득 사운드나 파티클 효과 등을 추가할 수 있습니다.
+       
     }
 
     // Start is called before the first frame update
